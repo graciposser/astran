@@ -7,6 +7,10 @@
  *
  */
 
+
+// Oi, Graci.
+
+
 #include "size.h"
 #include "Stopwatch.h"
 #include <iostream>
