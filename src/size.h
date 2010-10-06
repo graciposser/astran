@@ -19,6 +19,7 @@ Calculate the size of the cells
 #include "circuit.h"
 #include "cellnetlst.h"
 #include "RCTranslator.h"
+#include "GeometricProgram.h"
 #include "elmoredelay.h"
 
 using namespace std;
@@ -54,6 +55,14 @@ private:
 	void printAlter(Inst &instance, ofstream &file, Circuit &circuit);
 	bool printSetupCarac(Circuit& circuit, ofstream &simulate, ofstream &copyarq, string &top);
 	bool printScriptCarac(Circuit& circuit, string &top);
+
+	void printGP_Header( GeometricProgram &gp, const string &technology, const double parameterCload, const double parameterMaxArea );
+	void printGP_InstanceHeader( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName );
+	void printGP_InstanceRC( const RCTranslator &rc, string &D, const int cont, GeometricProgram &gp, double constrArea, string instanceName, int contInstance, string sizingType, double Cload, string technology);
+	void printGP_InstanceFooter( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName );
+	void printGP_Footer();
+	void printGP();
+
 public:
 	bool fo4(Circuit* c);
 	bool gp(Circuit* c);
