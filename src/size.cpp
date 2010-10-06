@@ -8,11 +8,6 @@
  */
 
 
-// Oi, Graci.
-// Oi, Guilherme.
-// Oi, Adriel
-
-
 #include "size.h"
 #include "Stopwatch.h"
 #include <iostream>
@@ -926,25 +921,32 @@ bool Size::gp(Circuit* c){
 
 	//transitorSizing(c,  c->getCellNetlst( c->getTopCell() ), file );
 	//return true;
-	double constrArea =  2.6;
-	double constrDelay = 2.10817e-10;
+	double constrArea =  3.6;
+	double constrDelay = 1.04057e-10;
 	string technology = "45nm";
-	string optimize = "delay";
+	string optimize = "power";
 	string sizingType = "gate";
-	double Cload = 8*1.87367e-16;
+	double Cload = 10*1.87367e-16;
 	double restrCin = 4;
 	
 	ofstream file( "gp.m" );
 
 	
 	ofstream script( "script.bat" );
+	ofstream simulate( "simulate.sh" );
+	ofstream copyarq( "copyarq.bat" );
+	string top = c->getTopCell();
+	ofstream subckt;
+	string filename = "subckt_" + top + ".sp";
+	subckt.open(filename.c_str()); // Write
+	
+	
 	int contInstance = 0;
 	map<string,bool> outputs;
 	map<string,bool> inputs;
     //CellNetlst flatten = c->getFlattenCell(c->getTopCell());
     //CellNetlst *netlist = &flatten;
 	//float circuitArea =0;
-	string top = c->getTopCell();
     queue<string> instancesFIFO;
 	string netOut;
 	//values for 350nm
@@ -1019,7 +1021,8 @@ bool Size::gp(Circuit* c){
         }
 
     }
-
+	netlist->calcIOs(c->getGndNet(), c->getVddNet());
+	
 	string netOutput;
     map<string, Interface> *interfaces = c->getInterfaces();
     for ( map<string, Interface>::iterator interfaces_it = interfaces->begin(); interfaces_it != interfaces->end(); interfaces_it++ ) {
@@ -1074,13 +1077,27 @@ bool Size::gp(Circuit* c){
 	}// end if
 	
 	if (sizingType == "gate"){
+		vector< pair<int,double> > &cins = netlist->getCins();
 		file << "Power = (";
 		for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
 			if (instances_it != instances.begin() )
 				file <<  " + ";
 			file << "Cload_" << instances_it->first;
 		}//end for
-		file << ") * 1.1^2 * 0.5;" << endl; //Faz o somatório dos Cloads * Vdd^2 * 0.5 (considera que as portas chaveiam em 50% do tempo
+		
+		
+		
+		
+		netlist->calcIOs(c->getGndNet(), c->getVddNet());
+		for ( vector<int>::iterator inouts_it=netlist->getInouts().begin(); inouts_it != netlist->getInouts().end(); inouts_it++ ){
+			cout << "Tipe pin " << netlist->getNetName(*inouts_it) << " = " << netlist->getIOType(*inouts_it) << endl;
+			if (netlist->getIOType(*inouts_it) == IOTYPE_INPUT){
+				cout << "Pin: " << *inouts_it << " Cin: " << cins[*inouts_it].second << endl;
+				
+			} // end if
+			
+		} // end for
+		file << ") * 1.1^2 * 0.5;" << endl; //Faz o somatório dos Cloads + Cin (do circuito) * Vdd^2 * 0.5 (considera que as portas chaveiam em 50% do tempo
 		
 		
 		file << "Abase = " ;
@@ -1199,9 +1216,13 @@ bool Size::gp(Circuit* c){
 	
 	if (sizingType == "gate" && optimize == "power"){
 		file << "delay <= " << constrDelay << ";" << endl;
-		file << "Afinal <= " << constrArea << " * Abase;" << endl; 
+		file << "Afinal <= " << constrArea << ";" << endl; 
 	}// end if
 	
+	if (sizingType == "gate" && optimize == "area_delay"){
+		file << "delay <= " << constrDelay << ";" << endl;
+		file << "Afinal <= " << constrArea << " * Abase;" << endl; 
+	}// end if
 	
 	for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
 		findCircuitInputs( c, netlist, c->getCellNetlst( instances_it->second.subCircuit ), instances_it->first, instances_it->second, file, inputs, restrCin);
@@ -1297,8 +1318,8 @@ bool Size::gp(Circuit* c){
 	system("script.bat");
 
 	//USING MAC
-	system("chmod 755 /Users/gposser/Desktop/Linux/graci/astran/snv/ICPD1/build/Debug/script.bat");
-	system("/Users/gposser/Desktop/Linux/graci/astran/snv/ICPD1/build/Debug/script.bat");
+	system("chmod 755 /Users/gposser/Desktop/astran/xcode/build/Debug/script.bat");
+	system("/Users/gposser/Desktop/astran/xcode/build/Debug/script.bat");
 	
 	
 
@@ -1415,6 +1436,9 @@ bool Size::gp(Circuit* c){
 	elmoredelay ed;
 	ed.elmoreFO4(c);
 	
+	/*-------------------------------------*************************************
+	
+	
 	//READ THE CRITICAL PATH FILE
 	vector<string> criticalSubCircuit;
 	ifstream  arq("crit.txt");
@@ -1424,8 +1448,8 @@ bool Size::gp(Circuit* c){
 	arq >> netInitial;
 	arq >> netFinal;
 	
-	cout << "Net Entrada:" << netInitial << endl;
-	cout << "Net Saida:" << netFinal << endl;
+	//cout << "Net Entrada:" << netInitial << endl;
+	//cout << "Net Saida:" << netFinal << endl;
 	while (arq) {
 		arq >> aux;
 		criticalSubCircuit.push_back(aux);
@@ -1434,24 +1458,161 @@ bool Size::gp(Circuit* c){
 	t_net netEntrada = netlist->getNet(netInitial);
 	t_net netSaida = netlist->getNet(netFinal);
 	
+	simulate << "rm -r " << top << endl;
+	simulate << "mkdir " << top << endl;
+	
+	simulate << "source /opt/ferramentas/scripts/setup.synopsys" << endl;
+	
+	copyarq << "scp ";
 	for (int i=0; i<(criticalSubCircuit.size()-1); i++){
-		cout << criticalSubCircuit[i] << endl;
+		//cout << criticalSubCircuit[i] << endl;
 		Inst instance = netlist->getInstance(criticalSubCircuit[i]);
-		printSpice(*c, instance);
+		printSpice(*c, instance, simulate, copyarq, top);
 	}
 	
-		
-				
-	//for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
-		//printSpice(*c, instances_it->second);
-	//}//end for
+	copyarq << " simulate.sh 143.54.10.45:~/Desktop/spices45nm/." << endl;
+	
+	*/
+	
+			
+	for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
+		printSpiceCarac(*c, instances_it->second, simulate, copyarq, top, subckt);
+	}//end for
+	subckt.close();
+	
 	
     return true;
 }
+
 // -----------------------------------------------------------------------------
-bool Size::printSpice(Circuit& circuit, Inst &instance){
+bool Size::printSpiceCarac(Circuit& circuit, Inst &instance, ofstream &simulate, ofstream &copyarq, string &top, ofstream &subckt){
+
+	string netOut;
+	if (!subckt)
+		return false;
+		
+	CellNetlst *netlist = circuit.getCellNetlst( instance.subCircuit );
+	
+	subckt << ".SUBCKT " <<  instance.subCircuit << "_" << instance.name;
+	vector<int> &ports = instance.ports;
+	for ( vector<int>::iterator inouts_it=netlist->getInouts().begin(); inouts_it != netlist->getInouts().end(); inouts_it++ )
+		subckt << " " << netlist->getNetName(*inouts_it);
+	//if(instance.m!=1) file << " M=" << instance.m;
+	subckt << endl;
+	vector<Trans> trans = netlist->getTransistors();
+	for (int x = 0; x < trans.size(); x++){
+		subckt << trans[x].name << " " << 
+		netlist->getNetName(trans[x].drain) << " " << 
+		netlist->getNetName(trans[x].gate) << " " << 
+		netlist->getNetName(trans[x].source) << " ";
+		if(trans[x].type==PMOS) 
+			subckt << circuit.getVddNet() << " PMOS_VTG";
+		else
+			subckt << circuit.getGndNet() << " NMOS_VTG";
+		subckt << " L=" << trans[x].length << "E-6 W=" << trans[x].width*instance.m << "E-6"<< endl;	
+	} // end if
+	subckt << ".ENDS " << instance.subCircuit << "_" << instance.name << endl << endl;
+	
+	for ( vector<int>::iterator inouts_it=netlist->getInouts().begin(); inouts_it != netlist->getInouts().end(); inouts_it++ ){
+		if (netlist->getIOType(*inouts_it) == IOTYPE_OUTPUT)
+			netOut = netlist->getNetName(*inouts_it);
+	} // end for
+	
+	
+	
+	
+	//file << "cLoad " << netOut << " 0 " << instance.Cload << "\n" << endl;
+	
+	//if(instance.m!=1) file << " M=" << instance.m;
+	//file << endl;
+	
+	//copyarq << filename << " ";
+	
+	return true;
+}
+
+// -----------------------------------------------------------------------------
+bool Size::printSetupCarac(Circuit& circuit, Inst &instance, ofstream &simulate, ofstream &copyarq, string &top, ofstream &subckt){
+		
+	CellNetlst *netlist = circuit.getCellNetlst( instance.subCircuit );
+	
+	ofstream setup;
+	string filename = "setup_" + top + ".txt";
+	setup.open(filename.c_str()); // Write
+
+	setup << "//Setup file for simulation in 45nm\n" << endl;
+	 
+	setup << "Process typical {" << endl;
+	setup << "\tvoltage = 1.1; // as voltage" << endl;
+	setup << "\ttemp = 25 ; /* as temperature */" << endl; 
+	setup << "\tVtn = 0.677 ; // nmos Vt" << endl;
+	setup << "\tVtp = 0.622 ; // pmos Vt" << endl;
+	setup << "};" << endl;
+	
+	
+	setup << "Signal std_cell {" << endl;
+	setup << "\tunit = REL ; // relative value" << endl;
+	setup << "\tVh = 1.0 1.0 ; // 100% rise/fall" << endl;
+	setup << "\tVl = 0.0 0.0 ; " << endl;
+	setup << "\tVth = 0.5 0.5 ; // 50% rise/fall" << endl;
+	setup << "\tVsh = 0.8 0.8 ;" << endl;
+	setup << "\tVsl = 0.2 0.2 ;" << endl;
+	setup << "\ttsmax = 2.0n ; // maximum output slew rate" << endl;
+	setup << "};" << endl;
+	
+	setup << "Simulation std_cell {" << endl; 
+	setup << "\ttransient = 0.2n 80n 10p ;" << endl;
+	setup << "\tbisec = 4.0n 4.0n 10ps ; // binary search" << endl; 
+	setup << "\tresistance = 10K;" << endl; 
+	setup << "};" << endl;
+	
+	subckt << ".SUBCKT " <<  instance.subCircuit << "_" << instance.name;
+	vector<int> &ports = instance.ports;
+	for ( vector<int>::iterator inouts_it=netlist->getInouts().begin(); inouts_it != netlist->getInouts().end(); inouts_it++ )
+		subckt << " " << netlist->getNetName(*inouts_it);
+	//if(instance.m!=1) file << " M=" << instance.m;
+	subckt << endl;
+	vector<Trans> trans = netlist->getTransistors();
+	for (int x = 0; x < trans.size(); x++){
+		subckt << trans[x].name << " " << 
+		netlist->getNetName(trans[x].drain) << " " << 
+		netlist->getNetName(trans[x].gate) << " " << 
+		netlist->getNetName(trans[x].source) << " ";
+		if(trans[x].type==PMOS) 
+			subckt << circuit.getVddNet() << " PMOS_VTG";
+		else
+			subckt << circuit.getGndNet() << " NMOS_VTG";
+		subckt << " L=" << trans[x].length << "E-6 W=" << trans[x].width*instance.m << "E-6"<< endl;	
+	} // end if
+	subckt << ".ENDS " << instance.subCircuit << "_" << instance.name << endl << endl;
+	
+	for ( vector<int>::iterator inouts_it=netlist->getInouts().begin(); inouts_it != netlist->getInouts().end(); inouts_it++ ){
+		if (netlist->getIOType(*inouts_it) == IOTYPE_OUTPUT)
+			netOut = netlist->getNetName(*inouts_it);
+	} // end for
+	
+	
+	
+	
+	//file << "cLoad " << netOut << " 0 " << instance.Cload << "\n" << endl;
+	
+	//if(instance.m!=1) file << " M=" << instance.m;
+	//file << endl;
+	
+	//copyarq << filename << " ";
+	
+	return true;
+}
+
+
+
+
+// -----------------------------------------------------------------------------
+bool Size::printSpiceSimulation(Circuit& circuit, Inst &instance, ofstream &simulate, ofstream &copyarq, string &top){
 	ofstream file;
-	string filename = instance.subCircuit + "_" + instance.name;
+	string filename = instance.subCircuit + "_" + instance.name + ".sp";
+
+	string netOut;
 	file.open(filename.c_str()); // Write
 	if (!file)
 		return false;
@@ -1459,17 +1620,21 @@ bool Size::printSpice(Circuit& circuit, Inst &instance){
 	CellNetlst *netlist = circuit.getCellNetlst( instance.subCircuit );
 	printHeader (file, "* ", "");
 	
+	simulate << "hspice " << filename << " > out.txt" << endl;
+	simulate << "sh clear.sh" << endl;
+	simulate << "sh maxdelay.sh > " << top << "/delay_" << instance.name << ".txt" << endl;
+	
 	file << ".include mos_45.sp\n"<< endl;
 	file << ".param vvdd = 1.1" << endl;
 	file << ".param vgnd = 0.0\n" << endl;
-	file << ".global vdd" << endl;
-	file << ".global gnd\n" << endl;
-	file << "Vsrc vdd 0 1.1\n" << endl;
-	file << ".SUBCKT " <<  instance.subCircuit << "_" << instance.name;
+	file << ".global VCC" << endl;
+	file << ".global GND\n" << endl;
+	file << "Vsrc vcc 0 1.1\n" << endl;
+	file << ".SUBCKT " <<  instance.subCircuit;
 	vector<int> &ports = instance.ports;
 	for ( vector<int>::iterator inouts_it=netlist->getInouts().begin(); inouts_it != netlist->getInouts().end(); inouts_it++ )
 		file << " " << netlist->getNetName(*inouts_it);
-	if(instance.m!=1) file << " M=" << instance.m;
+	//if(instance.m!=1) file << " M=" << instance.m;
 	file << endl;
 	vector<Trans> trans = netlist->getTransistors();
 	for (int x = 0; x < trans.size(); x++){
@@ -1478,16 +1643,32 @@ bool Size::printSpice(Circuit& circuit, Inst &instance){
 		netlist->getNetName(trans[x].gate) << " " << 
 		netlist->getNetName(trans[x].source) << " ";
 		if(trans[x].type==PMOS) 
-			file << circuit.getVddNet() << " PMOS";
+			file << circuit.getVddNet() << " PMOS_VTG";
 		else
-			file << circuit.getGndNet() << " NMOS";
+			file << circuit.getGndNet() << " NMOS_VTG";
 		file << " L=" << trans[x].length << "U W=" << trans[x].width << "U"<< endl;	
 	} // end if
 	file << ".ENDS " << instance.subCircuit << endl << endl;
-	file << "cLoad n1 0 " << instance.Cload << "\n" << endl;
+	
+	for ( vector<int>::iterator inouts_it=netlist->getInouts().begin(); inouts_it != netlist->getInouts().end(); inouts_it++ ){
+		if (netlist->getIOType(*inouts_it) == IOTYPE_OUTPUT)
+			netOut = netlist->getNetName(*inouts_it);
+	} // end for
+	
+	file << "cLoad " << netOut << " 0 " << instance.Cload << "\n" << endl;
+	file << instance.name; 
+	for ( vector<int>::iterator inouts_it=netlist->getInouts().begin(); inouts_it != netlist->getInouts().end(); inouts_it++ )
+		file << " " << netlist->getNetName(*inouts_it);
+	file << " " << instance.subCircuit;
+	if(instance.m!=1) file << " M=" << instance.m;
+	file << endl;
+	
 	printAlter(instance, file, circuit);
 	
 	file << ".end" << endl;
+	file.close();
+	copyarq << filename << " ";
+	
 	return true;
 }
 
@@ -1502,7 +1683,7 @@ void Size::printAlter(Inst &instance, ofstream &file, Circuit &circuit ){
 
 	netlist->calcIOs(circuit.getGndNet(), circuit.getVddNet());
 	for ( vector<int>::iterator inouts_it=netlist->getInouts().begin(); inouts_it != netlist->getInouts().end(); inouts_it++ ){
-		cout << netlist->getNetName(*inouts_it) << " = " << netlist->getIOType(*inouts_it) << endl;
+		//cout << netlist->getNetName(*inouts_it) << " = " << netlist->getIOType(*inouts_it) << endl;
 		if (netlist->getIOType(*inouts_it) == IOTYPE_INPUT){
 			numInputs++;
 			inputs.push_back(netlist->getNetName(*inouts_it));
@@ -1514,24 +1695,24 @@ void Size::printAlter(Inst &instance, ofstream &file, Circuit &circuit ){
 	for ( int i = 0; i < inputs.size(); i++ ) {
 			file << ".measure tran tpdf" << i << " trig v(" << inputs[i] <<") val=`vvdd/2` rise=1 targ v(" << netOut << ") val=`vvdd/2` fall=1" << endl;
 			file << ".measure tran tpdr" << i << " trig v(" << inputs[i] <<") val=`vvdd/2` fall=1 targ v(" << netOut << ") val=`vvdd/2` rise=1\n" << endl;
-			file << ".measure diff" << i << " param='tpdr" << i << " -tpdf" << i << " ' goal = 0\n" << endl;
+			//file << ".measure diff" << i << " param='tpdr" << i << " -tpdf" << i << " ' goal = 0\n" << endl;
 	} // end for
 	file << ".option post\n" << endl;
 	file << ".tran 1e-13 12n\n" << endl;
 	
 	combination.initialize( numInputs * 2 );
 	do {	
-		cout << "Test Vector " << counter << "\n";
+		//cout << "Test Vector " << counter << "\n";
 		
 		for ( int i = 0; i < inputs.size(); i++ ) {
 			const int i0 = i*2;
 			const int i1 = i0 + 1;
-			file << "*Input " << i << ": ";
-			file << combination.getElement(i0) << " -> " << combination.getElement(i1) << endl;
+			//cout << "*Input " << i << ": ";
+			//cout << combination.getElement(i0) << " -> " << combination.getElement(i1) << endl;
 			if (combination.getElement(i0) == 0)
-				file << "Vdt" << inputs[i] << " 0 pulse(vgnd ";
+				file << "Vdt" << inputs[i] << " " << inputs[i] << " 0 pulse(vgnd ";
 			else
-				file << "Vdt" << inputs[i] << " 0 pulse(vvdd ";
+				file << "Vdt" << inputs[i] << " " << inputs[i] << " 0 pulse(vvdd ";
 				
 			if (combination.getElement(i1) == 0)
 				file << "vgnd 10p 0p 0p 2n 4n)" << endl;

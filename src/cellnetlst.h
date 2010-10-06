@@ -66,7 +66,7 @@ struct Inst{
 	vector<int> ports;      // Ordered list of nets that connect to the I/Os of the cell
 	double m;                  // Multiplier (M=)
 	bool instanceVisited;
-	float cinPort;		//Input capacitance of port ************mudou
+	float cinPort;		//Input capacitance of port 
 	bool instanceSized;
 	double elmoreDelay;
 	double cellArea;
