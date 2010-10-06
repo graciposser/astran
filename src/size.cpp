@@ -924,7 +924,7 @@ bool Size::gp(Circuit* c){
 	double constrArea =  3.6;
 	double constrDelay = 1.04057e-10;
 	string technology = "45nm";
-	string optimize = "power";
+	string optimize = "delay";
 	string sizingType = "gate";
 	double Cload = 10*1.87367e-16;
 	double restrCin = 4;
@@ -939,7 +939,6 @@ bool Size::gp(Circuit* c){
 	ofstream subckt;
 	string filename = "subckt_" + top + ".sp";
 	subckt.open(filename.c_str()); // Write
-	
 	
 	int contInstance = 0;
 	map<string,bool> outputs;
@@ -1479,7 +1478,17 @@ bool Size::gp(Circuit* c){
 		printSpiceCarac(*c, instances_it->second, simulate, copyarq, top, subckt);
 	}//end for
 	subckt.close();
+	simulate << "source /opt/ferramentas/scripts/setup.cadence" << endl;
+	simulate << "source /opt/ferramentas/scripts/setup.synopsys" << endl;
+	simulate << "elc -S script_" << top << endl;
+	simulate << "sh clear.sh" << endl;
+	simulate.close();
 	
+	copyarq << "scp setup_" << top << ".txt subckt_" << top << ".sp script_" << top;  
+	copyarq << " simulate.sh 143.54.10.45:~/Desktop/carac/carac_45nm/." << endl;
+	copyarq.close();
+	printSetupCarac(*c, simulate, copyarq, top); 
+	printScriptCarac(*c, top);
 	
     return true;
 }
@@ -1518,36 +1527,29 @@ bool Size::printSpiceCarac(Circuit& circuit, Inst &instance, ofstream &simulate,
 			netOut = netlist->getNetName(*inouts_it);
 	} // end for
 	
-	
-	
-	
-	//file << "cLoad " << netOut << " 0 " << instance.Cload << "\n" << endl;
-	
-	//if(instance.m!=1) file << " M=" << instance.m;
-	//file << endl;
-	
-	//copyarq << filename << " ";
-	
 	return true;
 }
 
 // -----------------------------------------------------------------------------
-bool Size::printSetupCarac(Circuit& circuit, Inst &instance, ofstream &simulate, ofstream &copyarq, string &top, ofstream &subckt){
+bool Size::printSetupCarac(Circuit& circuit, ofstream &simulate, ofstream &copyarq, string &top){
 		
-	CellNetlst *netlist = circuit.getCellNetlst( instance.subCircuit );
+	//CellNetlst *netlist = circuit.getCellNetlst( instance.subCircuit );
 	
 	ofstream setup;
 	string filename = "setup_" + top + ".txt";
 	setup.open(filename.c_str()); // Write
-
+	CellNetlst *netlist = circuit.getCellNetlst( circuit.getTopCell() );
+    map<string,Inst> &instances = netlist->getInstances();
+	
+	
 	setup << "//Setup file for simulation in 45nm\n" << endl;
 	 
 	setup << "Process typical {" << endl;
 	setup << "\tvoltage = 1.1; // as voltage" << endl;
 	setup << "\ttemp = 25 ; /* as temperature */" << endl; 
-	setup << "\tVtn = 0.677 ; // nmos Vt" << endl;
-	setup << "\tVtp = 0.622 ; // pmos Vt" << endl;
-	setup << "};" << endl;
+	setup << "\tVtn = 0.15 ; // nmos Vt" << endl;
+	setup << "\tVtp = 0.15 ; // pmos Vt" << endl;
+	setup << "};\n" << endl;
 	
 	
 	setup << "Signal std_cell {" << endl;
@@ -1558,52 +1560,107 @@ bool Size::printSetupCarac(Circuit& circuit, Inst &instance, ofstream &simulate,
 	setup << "\tVsh = 0.8 0.8 ;" << endl;
 	setup << "\tVsl = 0.2 0.2 ;" << endl;
 	setup << "\ttsmax = 2.0n ; // maximum output slew rate" << endl;
-	setup << "};" << endl;
+	setup << "};\n" << endl;
 	
 	setup << "Simulation std_cell {" << endl; 
 	setup << "\ttransient = 0.2n 80n 10p ;" << endl;
 	setup << "\tbisec = 4.0n 4.0n 10ps ; // binary search" << endl; 
 	setup << "\tresistance = 10K;" << endl; 
-	setup << "};" << endl;
+	setup << "};\n" << endl;
 	
-	subckt << ".SUBCKT " <<  instance.subCircuit << "_" << instance.name;
-	vector<int> &ports = instance.ports;
-	for ( vector<int>::iterator inouts_it=netlist->getInouts().begin(); inouts_it != netlist->getInouts().end(); inouts_it++ )
-		subckt << " " << netlist->getNetName(*inouts_it);
-	//if(instance.m!=1) file << " M=" << instance.m;
-	subckt << endl;
-	vector<Trans> trans = netlist->getTransistors();
-	for (int x = 0; x < trans.size(); x++){
-		subckt << trans[x].name << " " << 
-		netlist->getNetName(trans[x].drain) << " " << 
-		netlist->getNetName(trans[x].gate) << " " << 
-		netlist->getNetName(trans[x].source) << " ";
-		if(trans[x].type==PMOS) 
-			subckt << circuit.getVddNet() << " PMOS_VTG";
-		else
-			subckt << circuit.getGndNet() << " NMOS_VTG";
-		subckt << " L=" << trans[x].length << "E-6 W=" << trans[x].width*instance.m << "E-6"<< endl;	
-	} // end if
-	subckt << ".ENDS " << instance.subCircuit << "_" << instance.name << endl << endl;
+	for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
+		setup << "Index " <<  instances_it->second.subCircuit << "_" << instances_it->second.name << " {" << endl;
+		setup << "\tslew = 0.007500N 0.018750N 0.037500N 0.075000N 0.150000N 0.300000N 0.600000N ;" << endl;
+		setup << "\tload = 0.000400P " << instances_it->second.Cload << " " << instances_it->second.Cload*2 << " ;" << endl;
+		setup << "} ;\n" << endl;
+	}//end for
 	
-	for ( vector<int>::iterator inouts_it=netlist->getInouts().begin(); inouts_it != netlist->getInouts().end(); inouts_it++ ){
-		if (netlist->getIOType(*inouts_it) == IOTYPE_OUTPUT)
-			netOut = netlist->getNetName(*inouts_it);
+	for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
+		setup << "Group " << instances_it->second.subCircuit << "_" << instances_it->second.name << " {" << endl;
+		setup << "\tCELL = *" << instances_it->second.subCircuit << "_" << instances_it->second.name << " ;" << endl;
+		setup << "} ;\n" << endl;
 	} // end for
 	
+	setup << "Margin m0 {" << endl;
+	setup << "\tsetup = 1.0 0.0 ;" << endl;
+	setup << "\thold = 1.0 0.0 ;" << endl;
+	setup << "\trelease = 1.0 0.0 ;" << endl;
+	setup << "\tremoval = 1.0 0.0 ;" << endl;
+	setup << "\trecovery = 1.0 0.0 ;" << endl;
+	setup << "\twidth = 1.0 0.0 ;" << endl;
+	setup << "\tdelay = 1.0 0.0 ; " << endl;
+	setup << "\tpower = 1.0 0.0 ; " << endl;
+	setup << "\tcap = 1.0 0.0 ;" << endl;
+	setup << "} ;\n" << endl;
 	
+	setup << "Nominal n0 {" << endl;
+	setup << "\tcap     = 0.0:0.5:1.0 0.0:0.5:1.0 ;  // rise / fall" << endl;
+	setup << "\tcheck   = 1.0:1.0:1.0 1.0:1.0:1.0 ;  // rise / fall" << endl;
+	setup << "\tcurrent = 0.0:0.5:1.0 0.0:0.5:1.0 ;  // rise / fall" << endl;
+	setup << "\tpower   = 0.0:0.5:1.0 0.0:0.5:1.0 ;  // rise / fall" << endl;
+	setup << "\tslew    = 0.0:0.5:1.0 0.0:0.5:1.0 ;  // rise / fall" << endl;
+	setup << "\tdelay   = 0.0:0.5:1.0 0.0:0.5:1.0 0.0:0.5:1.0;  // rise / fall / Z" << endl;
+	setup << "\tdelay = 0.5 0.5 ; // as rise fall" << endl; 
+	setup << "\tpower = 0.5 0.5 ; " << endl;
+	setup << "\tcap = 0.5 0.5 ;" << endl;
+	setup << "} ;\n" << endl;
 	
+	setup << "set process (best,typical,worst) {" << endl;
+	setup << "\tsimulation = std_cell  ;" << endl; 
+	setup << "\tindex = X1 ;" << endl; 
+	setup << "\tsignal = std_cell ;" << endl; 
+	setup << "\tmargin = m0 ;" << endl; 
+	setup << "\tnominal = n0 ;" << endl;
+	setup << "} ;\n" << endl;
 	
-	//file << "cLoad " << netOut << " 0 " << instance.Cload << "\n" << endl;
+	setup << "set index (best,typical,worst) {" << endl;
+	for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
+		setup << "Group (" << instances_it->second.subCircuit << "_" << instances_it->second.name << ") = " << instances_it->second.subCircuit << "_" << instances_it->second.name << " ;" << endl;
+	} // end for
+	setup << "} ;\n" << endl;
 	
-	//if(instance.m!=1) file << " M=" << instance.m;
-	//file << endl;
-	
-	//copyarq << filename << " ";
-	
+	setup.close();
 	return true;
 }
 
+// -----------------------------------------------------------------------------
+bool Size::printScriptCarac(Circuit& circuit, string &top){
+		
+	//CellNetlst *netlist = circuit.getCellNetlst( instance.subCircuit );
+	
+	ofstream scriptcarac;
+	string filename = "script_" + top;
+	scriptcarac.open(filename.c_str()); // Write
+	
+	scriptcarac << "set_var EC_SIM_USE_LSF 1 " << endl;
+	scriptcarac << "set_var EC_SIM_LSF_CMD \" \" " << endl;
+	scriptcarac << "set_var EC_SIM_LSF_PARALLEL 10 " << endl;
+	scriptcarac << "set_var EC_SIM_TYPE \"hspice\" " << endl;
+	scriptcarac << "set_var EC_SIM_NAME \"hspice\" " << endl;
+	scriptcarac << "set_var EC_SPICE_SIMPLIFY 1 " << endl;
+	scriptcarac << "set_var EC_DISABLE_BUNDLING 1 \n" << endl;
+	
+	scriptcarac << "set_var SUBCKT \"subckt_" << top << ".sp\"" << endl;
+	scriptcarac << "set_var MODEL \"mos_45.sp\"" << endl;
+	scriptcarac << "set_var SETUP \"setup_" << top << ".txt\"" << endl;
+	scriptcarac << "set_var PROCESS \"typical\"" << endl;
+	
+	scriptcarac << "db_open basic_char" << endl; 
+	scriptcarac << "db_prepare" << endl;  
+	scriptcarac << "db_spice -s hspice -keep_log\n" << endl;
+
+	scriptcarac << "db_output -process typical -alf carac.alf -lib carac.lib -report carac.report -state\n" << endl;
+	
+	scriptcarac << "alf2html -alf carac.alf -dir ./html\n" << endl;
+
+	scriptcarac << "db_output -process typical -lib lib_" << top << ".lib -state\n" << endl;
+	
+	scriptcarac << "db_close" << endl; 
+	scriptcarac << "exit" << endl;
+	
+	scriptcarac.close();
+	return true;
+}
 
 
 

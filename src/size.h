@@ -52,6 +52,8 @@ private:
 	bool printSpiceSimulation(Circuit& circuit, Inst &instance, ofstream &simulate, ofstream &copyarq, string &top);
 	bool printSpiceCarac(Circuit& circuit, Inst &instance, ofstream &simulate, ofstream &copyarq, string &top, ofstream &subckt);
 	void printAlter(Inst &instance, ofstream &file, Circuit &circuit);
+	bool printSetupCarac(Circuit& circuit, ofstream &simulate, ofstream &copyarq, string &top);
+	bool printScriptCarac(Circuit& circuit, string &top);
 public:
 	bool fo4(Circuit* c);
 	bool gp(Circuit* c);
