@@ -373,6 +373,170 @@ void Size::printRC( const RCTranslator &rc, string &D, const int cont, ofstream 
 	cerr << "\n";
 } // end function
 
+// -----------------------------------------------------------------------------
+
+void Size::printGP_Header( GeometricProgram &gp, const string &technology, const double parameterCload, const double parameterMaxArea ) {
+	//values for 350nm technology
+	double csbdb_pmos = 2.2087E-15;
+	double csbdb_nmos = 2.4025E-15;
+	double Req_pmos = 2.0717E+04;
+	double Req_nmos = 9.1691E+03;
+	double Xmin = 1;
+	double Xmax = 15;
+	double Xn = 1;
+	double Xp = 1.6;
+
+	//values for 45nm technology
+	const double pnratio = 1.5;
+
+	double csbdb_pmos_45 = 6.4541E-17 * pnratio;
+	double csbdb_nmos_45 = 7.1513E-17;
+	double Req_pmos_45 = 5.4987E+04 / pnratio;
+	double Req_nmos_45 = 1.5586E+04;
+	double Xmin_45 = 1;
+	double Xmax_45 = 32;
+	double Xn_45 = 0.09;
+	double Xp_45 = 0.135;
+
+	// Create variables.
+	// [TODO]
+
+	// Create constants.
+	gp.createConstant( "Cload", parameterCload );
+	gp.createConstant( "constrArea", parameterMaxArea );
+	
+	if (technology == "350nm"){
+		gp.createConstant( "Xmax", Xmax );
+		gp.createConstant( "Xmin", Xmin );
+		gp.createConstant( "CsbP", csbdb_pmos );
+		gp.createConstant( "CsbN", csbdb_nmos );
+		gp.createConstant( "ReqP", Req_pmos );
+		gp.createConstant( "ReqN", Req_nmos );
+		gp.createConstant( "Xn", Xn );
+		gp.createConstant( "Xp", Xp );
+	} else if (technology == "45nm") {
+		gp.createConstant( "Xmax", Xmax_45 );
+		gp.createConstant( "Xmin", Xmin_45 );
+		gp.createConstant( "CsbP", csbdb_pmos_45 );
+		gp.createConstant( "CsbN", csbdb_nmos_45 );
+		gp.createConstant( "ReqP", Req_pmos_45 );
+		gp.createConstant( "ReqN", Req_nmos_45 );
+		gp.createConstant( "Xn", Xn_45 );
+		gp.createConstant( "Xp", Xp_45 );
+	} else {
+		throw string( "Invalid technology!" );
+	} // end else
+} // end method
+
+// -----------------------------------------------------------------------------
+
+void Size::printGP_InstanceHeader( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName ) {
+	Variable * instvar = gp.requestVariable( instanceName );
+
+	gp.createMonomial( "Xn_" + instanceName, gp.requestConstant( "Xn" ), instvar );
+	gp.createMonomial( "Xp_" + instanceName, gp.requestConstant( "Xp" ), instvar );
+
+	//===========Imprime o Ron de cada transistor=========
+
+	for ( int i=0; i<rc.getNumTransistors(); i++){
+		const string Rtrans = "Rtrans" + ToString(i) + "_" + instanceName;
+
+		switch ( rc.getTransistorType(i) ) {
+			case RCTranslator::PMOS:
+				gp.createMonomial( Rtrans, gp.requestConstant("ReqP"), instvar, -1 );
+				break;
+			case RCTranslator::NMOS:
+				gp.createMonomial( Rtrans, gp.requestConstant("ReqN"), instvar, -1 );
+				break;
+		} // end swtich
+	} // end for
+
+	//===========Imprime a Capacitância de entrada de cada transistor=========
+	for ( int i=0; i<rc.getNumTransistors(); i++){
+		const string Ctrans = "Ctrans" + ToString(i) + "_" + instanceName;
+
+		switch ( rc.getTransistorType(i) ) {
+			case RCTranslator::PMOS:
+				gp.createMonomial( Ctrans, gp.requestConstant("CsbP"), instvar );
+				break;
+			case RCTranslator::NMOS:
+				gp.createMonomial( Ctrans, gp.requestConstant("CsbN"), instvar );
+				break;
+			} // end switch
+	} // end for
+
+	//===========Imprime a area da instancia =========
+	int numPMOS = 0;
+	int numNMOS = 0;
+
+	for ( int i = 0; i < rc.getNumTransistors(); i++ ) {
+		switch(rc.getTransistorType(i)) {
+			case RCTranslator::PMOS: numPMOS++; break;
+			case RCTranslator::NMOS: numNMOS++; break;
+		} // end switch
+	} // end for
+
+	// Abase = Xn*numPMOS + Xp*numNMOS
+	Sum * sumBase = gp.createSum( "Abase_" + instanceName,
+		gp.createMul( gp.requestConstant("Xn"), gp.createConstant( numNMOS ) ),
+		gp.createMul( gp.requestConstant("Xp"), gp.createConstant( numPMOS ) ) );
+
+	// Afinal = Abase * X_Instance
+	gp.createMul( "Afinal_" + instanceName, sumBase, instvar );
+} // end method
+
+// -----------------------------------------------------------------------------
+
+void Size::printGP_InstanceRC( const RCTranslator &rc, string &D, const int cont, GeometricProgram &gp, double constrArea, string instanceName, int contInstance, string sizingType, double Cload, string technology) {
+	Variable * instvar = gp.requestVariable( instanceName );
+
+	//=============Imprime a capacitância atrelada a cada nodo
+	//cerr << "Transistos connected to each node (via source or drain):\n";
+	for ( int n = 0; n < rc.getNumNodes(); n++ ) {
+		if ( rc.getDriverTransistor( n ) == -1 )
+			continue;
+
+		Sum * sumCap = gp.createSum( "C" + ToString(cont) + ToString(n) + "_" + instanceName );
+
+		//Imprime a capacitância de cada nodo
+		const vector<int> &trans = rc.getConnectedTransistors(n);
+		for ( int i = 0; i < trans.size(); i++ )
+			sumCap->addTerm( gp.requestPosynomialType( "Ctrans" + ToString(trans[i]) + "_" + instanceName ) );
+
+		if ( n == rc.getOutputNode() )
+			sumCap->addTerm( gp.requestPosynomialType( "Cload_" + instanceName ) );
+	} // end for
+
+	//=============Imprime a capacitância de Downstream de cada nodo
+	//cerr << "Downstream nodes of each node:\n";
+	for ( int n = 0; n < rc.getNumNodes(); n++ ) {
+		if ( rc.getDriverTransistor( n ) == -1 )
+			continue;
+
+		Sum * sumDown = gp.createSum( "Cdown" + ToString(cont) + ToString(n) + "_" + instanceName );
+
+		const vector<int> &nodes = rc.getDownstreamNodes(n);
+		for ( int i = 0; i < nodes.size(); i++ )
+			sumDown->addTerm( gp.requestPosynomialType( "C" + ToString(cont) + ToString(nodes[i]) + "_" + instanceName ) );
+	} // end for
+
+	//=============Imprime Elmore Delay de cada nodo +++++++++++++++++++++
+	const vector<int> &upnodes = rc.getUpstreamNodes(rc.getOutputNode());
+
+	PosynomialType * prevDelay = gp.createMul( "D" + ToString(cont) + ToString(upnodes.back()) + "_" + instanceName );
+	for ( int k = (upnodes.size()-2); k >= 0; k-- ) {
+
+		const int m = upnodes[k];
+
+		Sum * delay = gp.createSum(  "D" + ToString(cont) + ToString(m) + "_" + instanceName );
+		delay->addTerm( prevDelay );
+		delay->addTerm( gp.createMul(
+			gp.requestPosynomialType( "Rtrans" + ToString(rc.getDriverTransistor(m)) + "_" + instanceName ),
+			gp.requestPosynomialType( "Cdown" + ToString(cont) + ToString(m) + "_" + instanceName )	) );
+
+		prevDelay = delay;
+	} // end for
+} // end function
 
 // -----------------------------------------------------------------------------
 

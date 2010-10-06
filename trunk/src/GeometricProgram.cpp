@@ -55,7 +55,7 @@ Monomial * GeometricProgram::createMonomial( const string &name ) {
 
 // -----------------------------------------------------------------------------
 
-Monomial * createMonomial( const string &name, Constant * coefficient, Variable * variable, double expoent ) {
+Monomial * GeometricProgram::createMonomial( const string &name, Constant * coefficient, Variable * variable, double expoent ) {
 	Monomial * element = new Monomial( name );
 	element->setCoefficient( coefficient );
 	element->addTerm( variable, expoent );
@@ -143,7 +143,7 @@ Div * GeometricProgram::createDiv( const string &name ) {
 Div * GeometricProgram::createDiv( const string &name, PosynomialType * numerator, MonomialType * denominator ) {
 	Div * element = new Div( name );
 	element->setNumerator( numerator );
-	element->setDenomiator( denomiantor );
+	element->setDenomiator( denominator );
 
 	registerPosynomialType( element );
 	return element;
