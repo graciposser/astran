@@ -49,7 +49,8 @@ private:
 	double FO4Sizing( Circuit * circuit, Inst * inst, double Cload, map<string,bool> &outputs );
 	void walkElmoreDelay( Circuit * circuit, Inst * inst, ofstream &file );
 
-	bool printSpice(Circuit& circuit, Inst &instance);
+	bool printSpiceSimulation(Circuit& circuit, Inst &instance, ofstream &simulate, ofstream &copyarq, string &top);
+	bool printSpiceCarac(Circuit& circuit, Inst &instance, ofstream &simulate, ofstream &copyarq, string &top, ofstream &subckt);
 	void printAlter(Inst &instance, ofstream &file, Circuit &circuit);
 public:
 	bool fo4(Circuit* c);

@@ -532,7 +532,7 @@ bool elmoredelay::elmoreFO4(Circuit* c){
 	double areaCircuit = 0;
 	double areaBase = 0;
 	double CloadInst;
-	double Cload = 8*1.87367e-16;
+	double Cload = 10*1.87367e-16;
 	double delayCircuit;
 	double delayOld = 0;
 	map<string,bool> outputs;
@@ -573,6 +573,7 @@ bool elmoredelay::elmoreFO4(Circuit* c){
 
 	for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
 		CloadInst = calculateCload(c, netlist, c->getCellNetlst( instances_it->second.subCircuit ), instances_it->second, Cload, outputs, instances_it->second.m, instances_it->first);
+		instances_it->second.Cload = CloadInst;
 		//cout << "Cload " << instances_it->first << " = " << CloadInst << endl;
 		//cout << "Delay ANTES: " << instances_it->first << " = " << instances_it->second.elmoreDelay << endl;
 		//cout << instances_it->first << " = " << instances_it->second.m << endl;
