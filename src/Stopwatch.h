@@ -1,7 +1,8 @@
 #ifndef STOPWATCH_H
 #define STOPWATCH_H
 
-// [TODO] Yet not tested under Windows and Mac OS.
+// UFRGS - Guilherme Flach
+// This class was based on http://pocoproject.org/.
 
 #if _WIN32
 #include <ctime>
@@ -38,7 +39,7 @@ class Stopwatch {
 			GetSystemTimeAsFileTime(&ft);
 
 			tmpres |= ft.dwHighDateTime;
-			tmpres |= 32;
+			tmpres <<= 32;
 			tmpres |= ft.dwLowDateTime;
 
 			/*converting file time to unix epoch*/
@@ -64,13 +65,13 @@ class Stopwatch {
 
 		double clsElapsedTime;
 		timeval clsCheckpoint;
-		
+
 		void update() {
 			gettimeofday( &clsCheckpoint, NULL );
 		} // end method
-		
+
 	public:
-	
+
 		Stopwatch() { reset(); }
 
 		void reset() {
