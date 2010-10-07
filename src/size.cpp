@@ -377,6 +377,8 @@ void Size::printRC( const RCTranslator &rc, string &D, const int cont, ofstream 
 
 void Size::printGP_Header( GeometricProgram &gp, const string &technology, const double parameterCload, const double parameterMaxArea ) {
 	//values for 350nm technology
+	double cgateP = 5.2219E-16 * 1.6; //*1.6, pois � a rela��o P/N para a tecnologia 350n
+    double cgateN = 1.3767e-15;
 	double csbdb_pmos = 2.2087E-15;
 	double csbdb_nmos = 2.4025E-15;
 	double Req_pmos = 2.0717E+04;
@@ -389,6 +391,8 @@ void Size::printGP_Header( GeometricProgram &gp, const string &technology, const
 	//values for 45nm technology
 	const double pnratio = 1.5;
 
+	double cgateP_45 = 6.5592E-17  * pnratio; //*1.5, pois � a rela��o P/N para a tecnologia 45n
+    double cgateN_45 = 8.8979E-17;
 	double csbdb_pmos_45 = 6.4541E-17 * pnratio;
 	double csbdb_nmos_45 = 7.1513E-17;
 	double Req_pmos_45 = 5.4987E+04 / pnratio;
@@ -404,12 +408,14 @@ void Size::printGP_Header( GeometricProgram &gp, const string &technology, const
 	// Create constants.
 	gp.createConstant( "Cload", parameterCload );
 	gp.createConstant( "constrArea", parameterMaxArea );
-	
+
 	if (technology == "350nm"){
 		gp.createConstant( "Xmax", Xmax );
 		gp.createConstant( "Xmin", Xmin );
 		gp.createConstant( "CsbP", csbdb_pmos );
 		gp.createConstant( "CsbN", csbdb_nmos );
+		gp.createConstant( "CgateP", cgateP );
+		gp.createConstant( "CgateN", cgateN );
 		gp.createConstant( "ReqP", Req_pmos );
 		gp.createConstant( "ReqN", Req_nmos );
 		gp.createConstant( "Xn", Xn );
@@ -419,6 +425,8 @@ void Size::printGP_Header( GeometricProgram &gp, const string &technology, const
 		gp.createConstant( "Xmin", Xmin_45 );
 		gp.createConstant( "CsbP", csbdb_pmos_45 );
 		gp.createConstant( "CsbN", csbdb_nmos_45 );
+		gp.createConstant( "CgateP", cgateP_45 );
+		gp.createConstant( "CgateN", cgateN_45 );
 		gp.createConstant( "ReqP", Req_pmos_45 );
 		gp.createConstant( "ReqN", Req_nmos_45 );
 		gp.createConstant( "Xn", Xn_45 );
@@ -487,6 +495,63 @@ void Size::printGP_InstanceHeader( GeometricProgram &gp, const RCTranslator &rc,
 
 // -----------------------------------------------------------------------------
 
+void Size::printGP_InstanceCin( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName ) {
+	const vector<int> &inputs = rc.getInputNodes();
+	for ( int i = 0; i < inputs.size(); i++ ) {
+		const int nodeId = inputs[i];
+
+		int numPMOS = 0;
+		int numNMOS = 0;
+
+		const vector<int> &gates = rc.getTriggerTransistors(nodeId);
+		for ( int k = 0; k < 0; k++ ) {
+			const int transId = gates[k];
+
+			switch ( rc.getTransistorType(transId) ) {
+				case RCTranslator::PMOS: numPMOS++; break;
+				case RCTranslator::NMOS: numNMOS++; break;
+			} // end swtich
+		} // end for
+
+		// CinBase = CgateP*numPMOS + CgateN*numNMOS
+		Sum * sumBase = gp.createSum( 
+			gp.createMul( gp.requestConstant("CgateN"), gp.createConstant( numNMOS ) ),
+			gp.createMul( gp.requestConstant("CgateP"), gp.createConstant( numPMOS ) ) );
+
+		// CinFinal = CinBase * Instance_Size
+		gp.createMul( "Cin_" + instanceName + "_" + rc.getNodeName(nodeId), sumBase, gp.requestVariable( instanceName ) );
+	} // end for
+} // end method
+
+// -----------------------------------------------------------------------------
+
+void Size::printGP_InstanceCload( GeometricProgram &gp, Circuit * circuit, const string &instanceName ) {
+	Sum * cload = gp.createSum( "Cload_" + instanceName );
+
+	CellNetlst * topNetlist = circuit->getTopNetlist();
+	Inst &instance = topNetlist->getInstance( instanceName );
+	CellNetlst * netlist = circuit->getCellNetlst( instance.subCircuit );
+
+	vector<int> &ports = instance.ports;
+	for ( int l = 0; l < ports.size(); l++ ) {
+		t_net &net = topNetlist->getNet(ports[l]);
+		if ( net.name != circuit->getVddNet() && net.name != circuit->getGndNet() ) {
+			if (netlist->getIOType(l) == IOTYPE_OUTPUT){
+					if ( circuit->isPrimaryOutput( net.name ) == true ) {
+						cload->addTerm( gp.requestConstant( "Cload" ) );
+					} else {
+						const list<Inst*> &sinks = findSinks(circuit, topNetlist, net );
+						for ( list<Inst*>::const_iterator it = sinks.begin(); it != sinks.end(); it++ ) {
+							cload->addTerm( gp.requestPosynomialType( "Cin_" + instanceName + "_" + net.name ) );
+						} // end for
+					} // end else
+			} // end if
+		} // end if
+	} // end for
+} // end method
+
+// -----------------------------------------------------------------------------
+
 void Size::printGP_InstanceRC( const RCTranslator &rc, string &D, const int cont, GeometricProgram &gp, double constrArea, string instanceName, int contInstance, string sizingType, double Cload, string technology) {
 	Variable * instvar = gp.requestVariable( instanceName );
 
@@ -547,8 +612,6 @@ void Size::addInstances(queue<string> &instances, const t_net &net){
 		//cerr << "\t\tNeighbour: " << it->targetCellInst << "\t\tTargetPin: "<< it->targetPin << "\n";
 	}//end for
 }//end function
-
-
 
 //------------------------------------------------------------------------------
 
