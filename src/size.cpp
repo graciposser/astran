@@ -1085,7 +1085,7 @@ bool Size::gp(Circuit* c){
 
 	//transitorSizing(c,  c->getCellNetlst( c->getTopCell() ), file );
 	//return true;
-	double constrArea =  3.6;
+	double constrArea =  2;
 	double constrDelay = 1.04057e-10;
 	string technology = "45nm";
 	string optimize = "delay";
@@ -1247,35 +1247,11 @@ bool Size::gp(Circuit* c){
 				file <<  " + ";
 			file << "Cload_" << instances_it->first;
 		}//end for
-		
-		for( int l=0; l< cins.size(); l++) {
-			cout << "\t"<< cins[l].second << endl;
-		} // end for
 
-		
-		
-		/*
-		for ( map<string, Interface>::iterator interfaces_it = interfaces->begin(); interfaces_it != interfaces->end(); interfaces_it++ ) {
+		for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
+			addInputCapacitanceCircuit( c, netlist, c->getCellNetlst( instances_it->second.subCircuit ), instances_it->second, file, inputs);
+		}//end for
 
-			if ( interfaces_it->second.ioType == IOTYPE_OUTPUT ) continue;
-
-			t_net &net = netlist->getNet(interfaces_it->first);
-			
-			cout << net.name << " " << cins[i].second << endl;
-		} // end for
-		*/
-		
-		/*
-		netlist->calcIOs(c->getGndNet(), c->getVddNet());
-		for ( vector<int>::iterator inouts_it=netlist->getInouts().begin(); inouts_it != netlist->getInouts().end(); inouts_it++ ){
-			cout << "Tipe pin " << netlist->getNetName(*inouts_it) << " = " << netlist->getIOType(*inouts_it) << endl;
-			if (netlist->getIOType(*inouts_it) == IOTYPE_INPUT){
-				cout << "Pin: " << *inouts_it << " Cin: " << cins[*inouts_it].second << endl;
-				
-			} // end if
-			
-		} // end for
-		*/
 		file << ") * 1.1^2 * 0.5;" << endl; //Faz o somatório dos Cloads + Cin (do circuito) * Vdd^2 * 0.5 (considera que as portas chaveiam em 50% do tempo
 		
 		
@@ -1672,6 +1648,24 @@ bool Size::gp(Circuit* c){
 	
     return true;
 }
+
+//------------------------------------------------------------------------------
+
+void Size::addInputCapacitanceCircuit( Circuit *c, CellNetlst *topNetlist, CellNetlst *netlist, Inst instance, ofstream &file, map<string,bool> inputs) {
+	vector<int> &ports = instance.ports;
+	for (int l=0; l<ports.size(); l++)
+	{
+		t_net &net = topNetlist->getNet(ports[l]);
+		if ( net.name != c->getVddNet() && net.name != c->getGndNet() ) {
+			if (netlist->getIOType(l) == IOTYPE_INPUT){
+				if (inputs[net.name] == true){
+					file << " + Cin_" << instance.name;
+				}//end if
+			}//end if
+		}// end if
+	}//end for
+}//end function
+
 
 // -----------------------------------------------------------------------------
 bool Size::printSpiceCarac(Circuit& circuit, Inst &instance, ofstream &simulate, ofstream &copyarq, string &top, ofstream &subckt){

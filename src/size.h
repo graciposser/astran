@@ -38,7 +38,8 @@ private:
 	void calculateElmoreDelay(Circuit *c, RCTranslator rc);
 	void findCircuitInputs( Circuit *c, CellNetlst *topNetlist, CellNetlst *netlist, string instanceName, Inst instance, ofstream &file, map<string,bool> inputs, double restrCin);
 	void writeElmoreDelay( Circuit *c, CellNetlst *topNetlist, ofstream &file, list<Inst*> lst);
-
+	void addInputCapacitanceCircuit( Circuit *c, CellNetlst *topNetlist, CellNetlst *netlist, Inst instance, ofstream &file, map<string,bool> inputs);
+	
 	bool fanout4(Circuit *c);
 
 	Inst *findDriver (Circuit *circuit, CellNetlst *topNetlist, t_net net);
