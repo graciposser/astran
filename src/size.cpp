@@ -375,7 +375,7 @@ void Size::printRC( const RCTranslator &rc, string &D, const int cont, ofstream 
 
 // -----------------------------------------------------------------------------
 
-void Size::printGP_Header( GeometricProgram &gp, const string &technology, const double parameterCload, const double parameterMaxArea ) {
+void Size::printGP_Constants( GeometricProgram &gp, const string &technology, const double parameterCload, const double parameterMaxArea ) {
 	//values for 350nm technology
 	double cgateP = 5.2219E-16 * 1.6; //*1.6, pois � a rela��o P/N para a tecnologia 350n
     double cgateN = 1.3767e-15;
@@ -473,7 +473,7 @@ void Size::printGP_InstanceHeader( GeometricProgram &gp, const RCTranslator &rc,
 			} // end switch
 	} // end for
 
-	//===========Imprime a area da instancia =========
+	//===========Imprime a area e cin da instancia =========
 	int numPMOS = 0;
 	int numNMOS = 0;
 
@@ -485,12 +485,22 @@ void Size::printGP_InstanceHeader( GeometricProgram &gp, const RCTranslator &rc,
 	} // end for
 
 	// Abase = Xn*numPMOS + Xp*numNMOS
-	Sum * sumBase = gp.createSum( "Abase_" + instanceName,
+	Sum * areaBase = gp.createSum( "Abase_" + instanceName,
 		gp.createMul( gp.requestConstant("Xn"), gp.createConstant( numNMOS ) ),
 		gp.createMul( gp.requestConstant("Xp"), gp.createConstant( numPMOS ) ) );
 
 	// Afinal = Abase * X_Instance
-	gp.createMul( "Afinal_" + instanceName, sumBase, instvar );
+	gp.createMul( "Afinal_" + instanceName, areaBase, instvar );
+} // end method
+
+// -----------------------------------------------------------------------------
+
+void Size::printGP_InstanceFooter( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName ) {
+	const string delayName = "delay" + instanceName;
+
+	Max * delay = gp.createMax( delayName );
+	for ( int i = 0; i < rc.getRCTreeCounter(); i++ )
+		delay->addTerm( gp.requestPosynomial( "_" + ToString(i) + "_" ) );
 } // end method
 
 // -----------------------------------------------------------------------------
@@ -552,8 +562,10 @@ void Size::printGP_InstanceCload( GeometricProgram &gp, Circuit * circuit, const
 
 // -----------------------------------------------------------------------------
 
-void Size::printGP_InstanceRC( const RCTranslator &rc, string &D, const int cont, GeometricProgram &gp, double constrArea, string instanceName, int contInstance, string sizingType, double Cload, string technology) {
+void Size::printGP_InstanceRC( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName ) {
 	Variable * instvar = gp.requestVariable( instanceName );
+
+	const string rcTreeName = "_" + ToString(rc.getRCTreeCounter()) + "_";
 
 	//=============Imprime a capacitância atrelada a cada nodo
 	//cerr << "Transistos connected to each node (via source or drain):\n";
@@ -561,7 +573,7 @@ void Size::printGP_InstanceRC( const RCTranslator &rc, string &D, const int cont
 		if ( rc.getDriverTransistor( n ) == -1 )
 			continue;
 
-		Sum * sumCap = gp.createSum( "C" + ToString(cont) + ToString(n) + "_" + instanceName );
+		Sum * sumCap = gp.createSum( "C" + rcTreeName + ToString(n) + "_" + instanceName );
 
 		//Imprime a capacitância de cada nodo
 		const vector<int> &trans = rc.getConnectedTransistors(n);
@@ -578,30 +590,212 @@ void Size::printGP_InstanceRC( const RCTranslator &rc, string &D, const int cont
 		if ( rc.getDriverTransistor( n ) == -1 )
 			continue;
 
-		Sum * sumDown = gp.createSum( "Cdown" + ToString(cont) + ToString(n) + "_" + instanceName );
+		Sum * sumDown = gp.createSum( "Cdown" + rcTreeName + ToString(n) + "_" + instanceName );
 
 		const vector<int> &nodes = rc.getDownstreamNodes(n);
 		for ( int i = 0; i < nodes.size(); i++ )
-			sumDown->addTerm( gp.requestPosynomialType( "C" + ToString(cont) + ToString(nodes[i]) + "_" + instanceName ) );
+			sumDown->addTerm( gp.requestPosynomialType( "C" + rcTreeName + ToString(nodes[i]) + "_" + instanceName ) );
 	} // end for
 
 	//=============Imprime Elmore Delay de cada nodo +++++++++++++++++++++
 	const vector<int> &upnodes = rc.getUpstreamNodes(rc.getOutputNode());
 
-	PosynomialType * prevDelay = gp.createMul( "D" + ToString(cont) + ToString(upnodes.back()) + "_" + instanceName );
+	PosynomialType * prevDelay = gp.createMul( "D" + rcTreeName + ToString(upnodes.back()) + "_" + instanceName );
 	for ( int k = (upnodes.size()-2); k >= 0; k-- ) {
 
 		const int m = upnodes[k];
 
-		Sum * delay = gp.createSum(  "D" + ToString(cont) + ToString(m) + "_" + instanceName );
+		Sum * delay = gp.createSum(  "D" + rcTreeName + ToString(m) + "_" + instanceName );
 		delay->addTerm( prevDelay );
 		delay->addTerm( gp.createMul(
 			gp.requestPosynomialType( "Rtrans" + ToString(rc.getDriverTransistor(m)) + "_" + instanceName ),
-			gp.requestPosynomialType( "Cdown" + ToString(cont) + ToString(m) + "_" + instanceName )	) );
+			gp.requestPosynomialType( "Cdown" + rcTreeName + ToString(m) + "_" + instanceName )	) );
 
 		prevDelay = delay;
 	} // end for
 } // end function
+
+// -----------------------------------------------------------------------------
+
+void Size::printGP_Instance( GeometricProgram &gp, RCTranslator &rc, Circuit * circuit, const string &instanceName ) {
+	CellNetlst * topNetlist = circuit->getTopNetlist();
+	Inst &instance = topNetlist->getInstance( instanceName );
+	CellNetlst * netlist = circuit->getCellNetlst( instance.subCircuit );
+
+	try {
+		printGP_InstanceHeader( gp, rc, instanceName );
+		while ( rc.next() )
+			printGP_InstanceRC( gp, rc, instanceName );
+		printGP_InstanceFooter( gp, rc, instanceName );
+
+	} catch ( RCTranslatorException &e ) {
+		cerr << "[EXCEPTION] " << e.what() << "\n";
+		return;
+	} // end catch
+} // end method
+
+// -----------------------------------------------------------------------------
+
+void Size::printGP_CircuitDelayWalker( GeometricProgram &gp, Circuit * circuit, Inst *inst ) {
+	CellNetlst *topNetlist = circuit->getTopNetlist();
+	CellNetlst *netlist = circuit->getCellNetlst(inst->subCircuit);
+	vector<int> &ports = inst->ports;
+
+	if ( !inst->instanceSized ) {
+		vector<Inst*> drivers;
+		for ( int l=0; l<ports.size(); l++ ) {
+			t_net &net = topNetlist->getNet(ports[l]);
+			if ( net.name != circuit->getVddNet() && net.name != circuit->getGndNet() ) {
+				if (netlist->getIOType(l) == IOTYPE_INPUT){
+					Inst *driver = findDriver(circuit, topNetlist, net);
+
+					if ( driver ) {
+						drivers.push_back(driver);
+						printGP_CircuitDelayWalker( gp, circuit, driver );
+					} // end if
+				}//end if
+			}// end if
+		}//end for
+
+		if ( drivers.size() > 0 ) {
+			Max * inputDelay = gp.createMax();
+			for ( int i = 1; i < drivers.size(); i++ )
+				inputDelay->addTerm( gp.requestPosynomialType( "D_" + drivers[i]->name ) );
+
+			gp.createSum( "D_" + inst->name, gp.requestPosynomialType( "delay" + inst->name ), inputDelay );
+		} // end if
+
+		inst->instanceSized = true;
+	} // end if
+} // end method
+
+// -----------------------------------------------------------------------------
+
+void Size::printGP_CircuitDelay( GeometricProgram &gp, Circuit * circuit ) {
+	CellNetlst * topNetlist = circuit->getTopNetlist();
+	map<string, Interface> *interfaces = circuit->getInterfaces();
+	map<string, Inst> &instances = topNetlist->getInstances();
+
+	// Clean-up.
+    for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
+		it->second.instanceSized = false;
+
+	// For each intance which drives a circuit output.
+	for ( map<string, Interface>::iterator it = interfaces->begin(); it != interfaces->end(); it++ ) {
+		if ( it->second.ioType != IOTYPE_OUTPUT )
+			continue;
+
+		t_net &net = topNetlist->getNet(it->first);
+		printGP_CircuitDelayWalker( gp, circuit, findDriver(circuit, circuit->getTopNetlist(), net ) );
+	} // end for
+} // end method
+
+// -----------------------------------------------------------------------------
+
+void Size::printGP(Circuit * circuit) {
+	CellNetlst * topNetlist = circuit->getTopNetlist();
+	map<string,Inst> &instances = topNetlist->getInstances();
+
+	vector< RCTranslator > rcs;
+	SetupRCTranslators( circuit, rcs );
+
+	int counter;
+
+	try {
+		// Create the geometric program.
+		GeometricProgram gp;
+
+		// Write problem variables.
+		for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
+			gp.createVariable( it->first );
+
+		// Write constants.
+		printGP_Constants( gp, "45nm", 10e-15, 2 );
+
+		// Write cins.
+		counter = 0;
+		for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
+			printGP_InstanceCin( gp, rcs[counter++], it->first );
+
+		// Write cloads.
+		for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
+			printGP_InstanceCload( gp, circuit, it->first );
+
+		// Write RC Trees of each instance.
+		counter = 0;
+		for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
+			printGP_Instance( gp, rcs[counter++], circuit, it->first );
+
+		// Write delay.
+		printGP_CircuitDelay( gp, circuit );
+
+	} catch ( GeometricProgramException &e ) {
+		cerr << "[EXCEPTION] " << e.what() << "\n";
+	} // end catch
+} // end method
+
+// -----------------------------------------------------------------------------
+
+void Size::SetupRCTranslator( Circuit * circuit, RCTranslator &rc, Inst &inst ) {
+	CellNetlst * netlist = circuit->getCellNetlst( inst.subCircuit );
+
+	// Discover cell ios.
+	netlist->calcIOs( circuit->getGndNet(), circuit->getVddNet() );
+
+	try {
+		rc.SetGND(circuit->getGndNet());
+		rc.SetVDD(circuit->getVddNet());
+
+		// Define cell ios.
+		vector<int> &inouts = netlist->getInouts();
+		for ( int i = 0; i < inouts.size(); i++ ) {
+
+			switch (netlist->getIOType(inouts[i])) {
+				case IOTYPE_INPUT:
+					rc.AddInput( netlist->getNetName(inouts[i]));
+					break;
+				case IOTYPE_OUTPUT:
+					rc.AddOutput( netlist->getNetName(inouts[i]));
+					break;
+				default:
+					break;
+			} // end switch
+		} // end for
+
+		// Define cell transistors.
+		vector<Trans> &trans = netlist->getTransistors();
+		for (vector<Trans>::iterator trans_it = trans.begin(); trans_it != trans.end(); trans_it++){
+			if (trans_it->type == PMOS){
+				rc.AddTransistor( ToString(trans_it->name), RCTranslator::PMOS, ToString(netlist->getNetName(trans_it->source)), ToString(netlist->getNetName(trans_it->gate)) , ToString(netlist->getNetName(trans_it->drain)), trans_it->width  );
+			} else if (trans_it->type == NMOS){
+				rc.AddTransistor( ToString(trans_it->name), RCTranslator::NMOS, ToString(netlist->getNetName(trans_it->source)), ToString(netlist->getNetName(trans_it->gate)) , ToString(netlist->getNetName(trans_it->drain)), trans_it->width  );
+			} else{
+				cout << "Transistor type is not defined" << endl;
+			} // end else
+		} // end for
+
+		rc.initialize();
+
+	} catch ( RCTranslatorException &e ) {
+		cerr << "[EXCEPTION] " << e.what() << "\n";
+		return;
+	} // end catch
+
+} // end method
+
+// -----------------------------------------------------------------------------
+
+void Size::SetupRCTranslators( Circuit * circuit, vector< RCTranslator > &rcs ) {
+	CellNetlst * topNetlist = circuit->getTopNetlist();
+	map<string,Inst> &instances = topNetlist->getInstances();
+
+	rcs.clear();
+	rcs.resize( instances.size() );
+
+	int counter = 0;
+	for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
+		SetupRCTranslator( circuit, rcs[counter++], it->second );
+} // end method
 
 // -----------------------------------------------------------------------------
 

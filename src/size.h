@@ -57,16 +57,20 @@ private:
 	bool printSetupCarac(Circuit& circuit, ofstream &simulate, ofstream &copyarq, string &top);
 	bool printScriptCarac(Circuit& circuit, string &top);
 
-	void printGP_Header( GeometricProgram &gp, const string &technology, const double parameterCload, const double parameterMaxArea );
-	void printGP_Cins( GeometricProgram &gp );
-	void printGP_Cloads( GeometricProgram &gp );
+	void printGP_Constants( GeometricProgram &gp, const string &technology, const double parameterCload, const double parameterMaxArea );
+	void printGP_Instance( GeometricProgram &gp, RCTranslator &rc, Circuit * circuit, const string &instanceName );
 	void printGP_InstanceHeader( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName );
-	void printGP_InstanceRC( const RCTranslator &rc, string &D, const int cont, GeometricProgram &gp, double constrArea, string instanceName, int contInstance, string sizingType, double Cload, string technology);
+	void printGP_InstanceRC( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName );
+	void printGP_InstanceFooter( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName );
 	void printGP_InstanceCin( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName );
 	void printGP_InstanceCload( GeometricProgram &gp, Circuit * circuit, const string &instanceName );
-	void printGP_InstanceFooter( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName );
-	void printGP_Footer();
-	void printGP();
+	void printGP_CircuitDelay( GeometricProgram &gp, Circuit * circuit );
+	void printGP_CircuitDelayWalker( GeometricProgram &gp, Circuit * circuit, Inst *inst );
+	void printGP(Circuit * circuit);
+
+	void SetupRCTranslators( Circuit * circuit, vector< RCTranslator > &rcs );
+	void SetupRCTranslator( Circuit * circuit, RCTranslator &rc, Inst &inst );
+
 
 public:
 	bool fo4(Circuit* c);
