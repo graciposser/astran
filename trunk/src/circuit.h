@@ -91,6 +91,9 @@ class Circuit {
 	bool printInstance(CLayout* l, string instance);
 	void calculateCellsPins();
 
+	bool isPrimaryInput( const string &netname );
+	bool isPrimaryOutput( const string &netname );
+
 //	void printCells();
 //	void printNetlist();
 //	bool checkCells();

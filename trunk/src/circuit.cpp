@@ -297,3 +297,24 @@ void Circuit::calculateCellsPins(){
 		}
 	}		
 }
+
+
+// -----------------------------------------------------------------------------
+
+bool Circuit::isPrimaryInput( const string &netname ) {
+    for ( map<string, Interface>::iterator it = interfaces.begin(); it != interfaces.end(); it++ ) {
+		if ( it->second.ioType == IOTYPE_INPUT && it->first == netname )
+			return true;
+    } // end for
+	return false;
+} // end method
+
+// -----------------------------------------------------------------------------
+
+bool Circuit::isPrimaryOutput( const string &netname ) {
+    for ( map<string, Interface>::iterator it = interfaces.begin(); it != interfaces.end(); it++ ) {
+		if ( it->second.ioType == IOTYPE_OUTPUT && it->first == netname )
+			return true;
+    } // end for
+	return false;
+} // end method
