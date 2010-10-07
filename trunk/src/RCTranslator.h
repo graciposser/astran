@@ -178,7 +178,14 @@ class RCTranslator {
 		const float getTransistorWidth( const int transId ) const { return clsTransistors[transId].propWidth; }
 		
 		int getOutputNode() const { return clsOutputs.back(); } // guessing we have only one output :)
-		
+		const vector<int> &getInputNodes() const { return clsInputs; }
+
+		// Returns transistor ids of transistors connected via gate to a node.
+		const vector<int> &getTriggerTransistors( const int nodeId ) const { return clsNodes[nodeId].propTrigger; }
+
+		// Returns transistor ids of transistors connected via source or drain to a node.
+		const vector<int> &getTransistors( const int nodeId ) const { return clsNodes[nodeId].propTrans; }
+
 		int getNumNodes() const { return clsNodes.size(); }
 		int getNumTransistors() const { return clsTransistors.size(); }
 		
