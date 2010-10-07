@@ -1248,9 +1248,24 @@ bool Size::gp(Circuit* c){
 			file << "Cload_" << instances_it->first;
 		}//end for
 		
+		for( int l=0; l< cins.size(); l++) {
+			cout << "\t"<< cins[l].second << endl;
+		} // end for
+
 		
 		
+		/*
+		for ( map<string, Interface>::iterator interfaces_it = interfaces->begin(); interfaces_it != interfaces->end(); interfaces_it++ ) {
+
+			if ( interfaces_it->second.ioType == IOTYPE_OUTPUT ) continue;
+
+			t_net &net = netlist->getNet(interfaces_it->first);
+			
+			cout << net.name << " " << cins[i].second << endl;
+		} // end for
+		*/
 		
+		/*
 		netlist->calcIOs(c->getGndNet(), c->getVddNet());
 		for ( vector<int>::iterator inouts_it=netlist->getInouts().begin(); inouts_it != netlist->getInouts().end(); inouts_it++ ){
 			cout << "Tipe pin " << netlist->getNetName(*inouts_it) << " = " << netlist->getIOType(*inouts_it) << endl;
@@ -1260,6 +1275,7 @@ bool Size::gp(Circuit* c){
 			} // end if
 			
 		} // end for
+		*/
 		file << ") * 1.1^2 * 0.5;" << endl; //Faz o somatório dos Cloads + Cin (do circuito) * Vdd^2 * 0.5 (considera que as portas chaveiam em 50% do tempo
 		
 		
