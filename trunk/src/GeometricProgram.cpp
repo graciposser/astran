@@ -36,6 +36,22 @@ Constant * GeometricProgram::createConstant( const string &name, const double va
 
 // -----------------------------------------------------------------------------
 
+ConstantSum * GeometricProgram::createConstantSum( const string &name ) {
+	ConstantSum * element = new ConstantSum( name );
+	registerPosynomialType( element );
+	return element;
+} // end method
+
+// -----------------------------------------------------------------------------
+
+ConstantMul * GeometricProgram::createConstantMul( const string &name ) {
+	ConstantMul * element = new ConstantMul( name );
+	registerPosynomialType( element );
+	return element;
+} // end method
+
+// -----------------------------------------------------------------------------
+
 Variable * GeometricProgram::createVariable( const string &name ) {
 	if ( name == "" )
 		throw GeometricProgramException( "Variables must be named." );
@@ -55,7 +71,7 @@ Monomial * GeometricProgram::createMonomial( const string &name ) {
 
 // -----------------------------------------------------------------------------
 
-Monomial * GeometricProgram::createMonomial( const string &name, Constant * coefficient, Variable * variable, double expoent ) {
+Monomial * GeometricProgram::createMonomial( const string &name, ConstantType * coefficient, Variable * variable, double expoent ) {
 	Monomial * element = new Monomial( name );
 	element->setCoefficient( coefficient );
 	element->addTerm( variable, expoent );
@@ -90,6 +106,28 @@ Mul * GeometricProgram::createMul( const string &name ) {
 
 // -----------------------------------------------------------------------------
 
+ConstantSum * GeometricProgram::createConstantSum( const string &name, ConstantType *op1, ConstantType * op2 ) {
+	ConstantSum * element = new ConstantSum( name );
+	element->addTerm( op1 );
+	element->addTerm( op2 );
+
+	registerPosynomialType( element );
+	return element;
+} // end method
+
+// -----------------------------------------------------------------------------
+
+ConstantMul * GeometricProgram::createConstantMul( const string &name, ConstantType *op1, ConstantType * op2 ) {
+	ConstantMul * element = new ConstantMul( name );
+	element->addTerm( op1 );
+	element->addTerm( op2 );
+
+	registerPosynomialType( element );
+	return element;
+} // end method
+
+// -----------------------------------------------------------------------------
+
 Sum * GeometricProgram::createSum( const string &name, PosynomialType *op1, PosynomialType * op2 ) {
 	Sum * element = new Sum( name );
 	element->addTerm( op1 );
@@ -109,7 +147,6 @@ Mul * GeometricProgram::createMul( const string &name, PosynomialType *op1, Posy
 	registerPosynomialType( element );
 	return element;
 } // end method
-
 
 // -----------------------------------------------------------------------------
 
@@ -168,28 +205,35 @@ void GeometricProgram::print( ostream &out ) const {
 
 	out << "\n";
 
-	out << "minimize ";
-	clsObjective->print(out);
-	out << "\n";
-	out << "subject to\n";
-
-	const int numConstraints = clsConstraints.size();
-	for ( int i = 0; i < numConstraints; i++ ) {
-		PosynomialType * posynomial = clsConstraints[i].first;
-		MonomialType * monomial = clsConstraints[i].second;
-
-		out << "\t";
-		posynomial->print(out);
-		out << " <= ";
-		monomial->print(out);
+	if ( clsObjective ) {
+		out << "minimize ";
+		clsObjective->print(out);
 		out << "\n";
-	} // end if
+		out << "subject to\n";
 
+		const int numConstraints = clsConstraints.size();
+		for ( int i = 0; i < numConstraints; i++ ) {
+			PosynomialType * posynomial = clsConstraints[i].first;
+			MonomialType * monomial = clsConstraints[i].second;
+
+			out << "\t";
+			posynomial->print(out);
+			out << " <= ";
+			monomial->print(out);
+			out << "\n";
+		} // end if
+	} else {
+		out << "[WARNING] Objective function was not set.\n";
+	} // end else
+
+	out << std::flush;
 } // end method
 
 // -----------------------------------------------------------------------------
 
 Constant * GeometricProgram::createConstant( const double value ) { return createConstant( "", value ); }
+ConstantSum * GeometricProgram::createConstantSum() { return createConstantSum( "" ); }
+ConstantMul * GeometricProgram::createConstantMul() { return createConstantMul( "" ); }
 Monomial * GeometricProgram::createMonomial() { return createMonomial(""); }
 Posynomial * GeometricProgram::createPosynomial() { return createPosynomial(""); }
 
@@ -198,7 +242,11 @@ Mul * GeometricProgram::createMul() { return createMul(""); }
 Div * GeometricProgram::createDiv() { return createDiv(""); }
 Max * GeometricProgram::createMax() { return createMax(""); }
 
-Monomial * GeometricProgram::createMonomial( Constant * coefficient, Variable * variable, double expoent ) { return createMonomial( coefficient, variable, expoent ); }
+Monomial * GeometricProgram::createMonomial( ConstantType * coefficient, Variable * variable, double expoent ) { return createMonomial( coefficient, variable, expoent ); }
+
+
+ConstantSum * GeometricProgram::createConstantSum( ConstantType *op1, ConstantType * op2 ) { return createConstantSum( "", op1, op2 ); }
+ConstantMul * GeometricProgram::createConstantMul( ConstantType *op1, ConstantType * op2 ) { return createConstantMul( "", op1, op2 ); }
 
 Sum * GeometricProgram::createSum( PosynomialType *op1, PosynomialType * op2 ) { return createSum( "", op1, op2 ); }
 Mul * GeometricProgram::createMul( PosynomialType *op1, PosynomialType * op2 ) { return createMul( "", op1, op2 ); }
@@ -208,10 +256,10 @@ Div * GeometricProgram::createDiv( PosynomialType * numerator, MonomialType * de
 
 // -----------------------------------------------------------------------------
 
-Constant * GeometricProgram::requestConstant( const string &name ) const {
-	map<string,Constant*>::const_iterator it = clsConstants.find( name );
-	if ( it == clsConstants.end() )
-		throw GeometricProgramException( "Constant not found." );
+ConstantType * GeometricProgram::requestConstantType( const string &name ) const {
+	map<string,ConstantType*>::const_iterator it = clsConstantTypes.find( name );
+	if ( it == clsConstantTypes.end() )
+		throw GeometricProgramException( "ConstantType '" + name + "' not found." );
 	return it->second;
 } // end method
 
@@ -220,7 +268,7 @@ Constant * GeometricProgram::requestConstant( const string &name ) const {
 Variable * GeometricProgram::requestVariable( const string &name ) const {
 	map<string,Variable*>::const_iterator it = clsVariables.find( name );
 	if ( it == clsVariables.end() )
-		throw GeometricProgramException( "Variable not found." );
+		throw GeometricProgramException( "Variable '" + name + "' not found." );
 	return it->second;
 } // end method
 
@@ -229,7 +277,7 @@ Variable * GeometricProgram::requestVariable( const string &name ) const {
 Monomial * GeometricProgram::requestMonomial( const string &name ) const {
 	map<string,Monomial*>::const_iterator it = clsMonomials.find( name );
 	if ( it == clsMonomials.end() )
-		throw GeometricProgramException( "Monomial not found." );
+		throw GeometricProgramException( "Monomial '" + name + "' not found." );
 	return it->second;
 } // end method
 
@@ -238,7 +286,7 @@ Monomial * GeometricProgram::requestMonomial( const string &name ) const {
 Posynomial * GeometricProgram::requestPosynomial( const string &name ) const {
 	map<string,Posynomial*>::const_iterator it = clsPosynomials.find( name );
 	if ( it == clsPosynomials.end() )
-		throw GeometricProgramException( "Posynomial not found." );
+		throw GeometricProgramException( "Posynomial '" + name + "' not found." );
 	return it->second;
 } // end method
 
@@ -247,7 +295,7 @@ Posynomial * GeometricProgram::requestPosynomial( const string &name ) const {
 PosynomialType * GeometricProgram::requestPosynomialType( const string &name ) const {
 	map<string,PosynomialType*>::const_iterator it = clsAny.find( name );
 	if ( it == clsAny.end() )
-		throw GeometricProgramException( "PosynomialType not found." );
+		throw GeometricProgramException( "PosynomialType '" + name + "' not found." );
 	return it->second;
 } // end method
 
@@ -293,6 +341,11 @@ void GeometricProgram::standardize( StandardGeometricProgram &gp ) {
 } // end method
 
 // =============================================================================
+// Compute Value
+// =============================================================================
+
+
+// =============================================================================
 // Ungeneralize
 // =============================================================================
 
@@ -316,6 +369,34 @@ void Constant::print( ostream &out, const bool unroll ) const {
 		out << getName();
 	else
 		out << clsValue;
+} // end method
+
+// -----------------------------------------------------------------------------
+
+void ConstantSum::print( ostream &out, const bool unroll ) const {
+	if ( !unroll && hasName() ) {
+		out << getName();
+	} else {
+		for ( int i = 0; i < clsTerms.size(); i++ ) {
+			if ( i > 0 )
+				out << " + ";
+			clsTerms[i]->print(out);
+		} // end for
+	} // end else
+} // end method
+
+// -----------------------------------------------------------------------------
+
+void ConstantMul::print( ostream &out, const bool unroll ) const {
+	if ( !unroll && hasName() ) {
+		out << getName();
+	} else {
+		for ( int i = 0; i < clsTerms.size(); i++ ) {
+			if ( i > 0 )
+				out << " + ";
+			clsTerms[i]->print(out);
+		} // end for
+	} // end else
 } // end method
 
 // -----------------------------------------------------------------------------
@@ -428,9 +509,9 @@ void Max::print( ostream &out, const bool unroll ) const {
 // Standardize to StandardMonomial
 // =============================================================================
 
-StandardMonomial * Constant::toStandardMonomial( StandardGeometricProgram &gp ) const {
+StandardMonomial * ConstantType::toStandardMonomial( StandardGeometricProgram &gp ) const {
 	StandardMonomial * monomial = gp.createMonomial();
-	monomial->setCoefficient( clsValue );
+	monomial->setCoefficient( computeValue() );
 	return monomial;
 } // end method
 
@@ -447,7 +528,7 @@ StandardMonomial * Variable::toStandardMonomial( StandardGeometricProgram &gp ) 
 
 StandardMonomial * Monomial::toStandardMonomial( StandardGeometricProgram &gp ) const {
 	StandardMonomial * monomial = gp.createMonomial();
-	monomial->setCoefficient( clsCoefficient->getValue() );
+	monomial->setCoefficient( clsCoefficient->computeValue() );
 	for ( int i = 0; i < clsTerms.size(); i++ ) {
 		const Term &term = clsTerms[i];
 		monomial->addTerm( term.propVariable->getName(), term.propExpoent );
@@ -512,7 +593,7 @@ StandardPosynomial * Max::toStandardPosynomial( StandardGeometricProgram &gp ) c
 } // end method
 
 // =============================================================================
-// Standard eometric Program Descriptor
+// Standard Geometric Program Descriptor
 // =============================================================================
 
 void StandardGeometricProgram::setObjective( StandardPosynomial * objective ) {
