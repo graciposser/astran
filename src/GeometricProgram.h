@@ -187,21 +187,82 @@ public:
 
 // -----------------------------------------------------------------------------
 
-class Constant : public MonomialType {
+class ConstantType : public MonomialType {
+public:
+
+	ConstantType( const string &name ) : MonomialType( name ) {
+	} // end constructor
+
+	virtual double computeValue() const = 0;
+	virtual StandardMonomial * toStandardMonomial( StandardGeometricProgram &gp ) const;
+};
+
+// -----------------------------------------------------------------------------
+
+class Constant : public ConstantType {
 friend class GeometricProgram; friend class StandardGeometricProgram;
 private:
 	double clsValue;
 
-	Constant( const string &name, const double value ) : MonomialType( name ) {
+	Constant( const string &name, const double value ) : ConstantType( name ) {
 		clsValue = value;
 	} // end constructor
 
 public:
 
-	double getValue() const { return clsValue; }
+	virtual void print( ostream &out, const bool unroll = false ) const;
+	virtual double computeValue() const { return clsValue; }
+}; // end class
+
+// -----------------------------------------------------------------------------
+
+class ConstantSum : public ConstantType {
+friend class GeometricProgram; friend class StandardGeometricProgram;
+private:
+	vector<ConstantType*> clsTerms;
+
+	ConstantSum( const string &name ) : ConstantType( name ) {
+	} // end constructor
+
+public:
+	void addTerm( ConstantType * constant ) {
+		clsTerms.push_back( constant );
+	} // end method
 
 	virtual void print( ostream &out, const bool unroll = false ) const;
-	virtual StandardMonomial * toStandardMonomial( StandardGeometricProgram &gp ) const;
+
+	virtual double computeValue() const {
+		double value = 0;
+		for ( int i = 0; i < clsTerms.size(); i++ )
+			value += clsTerms[i]->computeValue();
+		return value;
+	} // end method
+
+}; // end class
+
+// -----------------------------------------------------------------------------
+
+class ConstantMul : public ConstantType {
+friend class GeometricProgram; friend class StandardGeometricProgram;
+private:
+	vector<ConstantType*> clsTerms;
+
+	ConstantMul( const string &name ) : ConstantType( name ) {
+	} // end constructor
+
+public:
+	void addTerm( ConstantType * constant ) {
+		clsTerms.push_back( constant );
+	} // end method
+
+	virtual void print( ostream &out, const bool unroll = false ) const;
+
+	virtual double computeValue() const {
+		double value = 1;
+		for ( int i = 0; i < clsTerms.size(); i++ )
+			value *= clsTerms[i]->computeValue();
+		return value;
+	} // end method
 
 }; // end class
 
@@ -238,7 +299,7 @@ private:
 	};
 
 	vector<Term> clsTerms;
-	Constant * clsCoefficient;
+	ConstantType * clsCoefficient;
 
 	Monomial( const string &name ) : MonomialType( name ) {
 		clsCoefficient = NULL;
@@ -252,7 +313,7 @@ private:
 
 public:
 
-	void setCoefficient( Constant * coefficient ) {
+	void setCoefficient( ConstantType * coefficient ) {
 		clsCoefficient = coefficient;
 	} // end method
 
@@ -516,12 +577,12 @@ private:
 	vector< pair<PosynomialType *, MonomialType *> > clsConstraints;
 
 	// Basic types.
-	map<string,Constant*> clsConstants;
 	map<string,Variable*> clsVariables;
 	map<string,Monomial*> clsMonomials;
 	map<string,Posynomial*> clsPosynomials;
 
 	// Generic types.
+	map<string,ConstantType*> clsConstantTypes;
 	map<string,PosynomialType*> clsAny;
 	
 	vector<string> clsNames;
@@ -533,7 +594,11 @@ private:
 			clsAny[ e->getName() ] = e;
 
 			if ( typeid(*e) == typeid( Constant ) )
-				clsConstants[e->getName()] = ( Constant * ) e;
+				clsConstantTypes[e->getName()] = ( ConstantType * ) e;
+			else if ( typeid(*e) == typeid( ConstantSum ) )
+				clsConstantTypes[e->getName()] = ( ConstantType * ) e;
+			else if ( typeid(*e) == typeid( ConstantMul ) )
+				clsConstantTypes[e->getName()] = ( ConstantType * ) e;
 			else if ( typeid(*e) == typeid( Variable ) )
 				clsVariables[e->getName()] = ( Variable * ) e;
 			else if ( typeid(*e) == typeid( Monomial ) )
@@ -551,6 +616,8 @@ public:
 	Variable * createInternalVariable();
 
 	Constant * createConstant( const string &name, const double value );
+	ConstantSum * createConstantSum( const string &name );
+	ConstantMul * createConstantMul( const string &name );
 	Variable * createVariable( const string &name );
 	Monomial * createMonomial( const string &name );
 	Posynomial * createPosynomial( const string &name );
@@ -559,7 +626,10 @@ public:
 	Max * createMax( const string &name );
 	Div * createDiv( const string &name );
 
-	Monomial * createMonomial( const string &name, Constant * coefficient, Variable * variable, double expoent = 1 );
+	Monomial * createMonomial( const string &name, ConstantType * coefficient, Variable * variable, double expoent = 1 );
+
+	ConstantSum * createConstantSum( const string &name, ConstantType *op1, ConstantType * op2 );
+	ConstantMul * createConstantMul( const string &name, ConstantType *op1, ConstantType * op2 );
 
 	Sum * createSum( const string &name, PosynomialType *op1, PosynomialType * op2 );
 	Mul * createMul( const string &name, PosynomialType *op1, PosynomialType * op2 );
@@ -568,13 +638,18 @@ public:
 	Div * createDiv( const string &name, PosynomialType * numerator, MonomialType * denominator );
 
 	Constant * createConstant( const double value );
+	ConstantSum * createConstantSum();
+	ConstantMul * createConstantMul();
 	Monomial * createMonomial();
-	Monomial * createMonomial( Constant * coefficient, Variable * variable, double expoent = 1 );
+	Monomial * createMonomial( ConstantType * coefficient, Variable * variable, double expoent = 1 );
 	Posynomial * createPosynomial();
 	Sum * createSum();
 	Mul * createMul();
 	Max * createMax();
 	Div * createDiv();
+
+	ConstantSum * createConstantSum( ConstantType *op1, ConstantType * op2 );
+	ConstantMul * createConstantMul( ConstantType *op1, ConstantType * op2 );
 
 	Sum * createSum( PosynomialType *op1, PosynomialType * op2 );
 	Mul * createMul( PosynomialType *op1, PosynomialType * op2 );
@@ -582,7 +657,7 @@ public:
 
 	Div * createDiv( PosynomialType * numerator, MonomialType * denominator );
 
-	Constant * requestConstant( const string &name ) const;
+	ConstantType * requestConstantType( const string &name ) const;
 	Variable * requestVariable( const string &name ) const;
 	Monomial * requestMonomial( const string &name ) const;
 	Posynomial * requestPosynomial( const string &name ) const;
