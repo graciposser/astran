@@ -441,8 +441,8 @@ void Size::printGP_Constants( GeometricProgram &gp, const string &technology, co
 void Size::printGP_InstanceHeader( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName ) {
 	Variable * instvar = gp.requestVariable( instanceName );
 
-	gp.createMonomial( "Xn_" + instanceName, gp.requestConstant( "Xn" ), instvar );
-	gp.createMonomial( "Xp_" + instanceName, gp.requestConstant( "Xp" ), instvar );
+	gp.createMonomial( "Xn_" + instanceName, gp.requestConstantType( "Xn" ), instvar );
+	gp.createMonomial( "Xp_" + instanceName, gp.requestConstantType( "Xp" ), instvar );
 
 	//===========Imprime o Ron de cada transistor=========
 
@@ -451,10 +451,10 @@ void Size::printGP_InstanceHeader( GeometricProgram &gp, const RCTranslator &rc,
 
 		switch ( rc.getTransistorType(i) ) {
 			case RCTranslator::PMOS:
-				gp.createMonomial( Rtrans, gp.requestConstant("ReqP"), instvar, -1 );
+				gp.createMonomial( Rtrans, gp.requestConstantType("ReqP"), instvar, -1 );
 				break;
 			case RCTranslator::NMOS:
-				gp.createMonomial( Rtrans, gp.requestConstant("ReqN"), instvar, -1 );
+				gp.createMonomial( Rtrans, gp.requestConstantType("ReqN"), instvar, -1 );
 				break;
 		} // end swtich
 	} // end for
@@ -465,10 +465,10 @@ void Size::printGP_InstanceHeader( GeometricProgram &gp, const RCTranslator &rc,
 
 		switch ( rc.getTransistorType(i) ) {
 			case RCTranslator::PMOS:
-				gp.createMonomial( Ctrans, gp.requestConstant("CsbP"), instvar );
+				gp.createMonomial( Ctrans, gp.requestConstantType("CsbP"), instvar );
 				break;
 			case RCTranslator::NMOS:
-				gp.createMonomial( Ctrans, gp.requestConstant("CsbN"), instvar );
+				gp.createMonomial( Ctrans, gp.requestConstantType("CsbN"), instvar );
 				break;
 			} // end switch
 	} // end for
@@ -485,9 +485,9 @@ void Size::printGP_InstanceHeader( GeometricProgram &gp, const RCTranslator &rc,
 	} // end for
 
 	// Abase = Xn*numPMOS + Xp*numNMOS
-	Sum * areaBase = gp.createSum( "Abase_" + instanceName,
-		gp.createMul( gp.requestConstant("Xn"), gp.createConstant( numNMOS ) ),
-		gp.createMul( gp.requestConstant("Xp"), gp.createConstant( numPMOS ) ) );
+	ConstantSum * areaBase = gp.createConstantSum( "Abase_" + instanceName,
+		gp.createConstantMul( gp.requestConstantType("Xn"), gp.createConstant( numNMOS ) ),
+		gp.createConstantMul( gp.requestConstantType("Xp"), gp.createConstant( numPMOS ) ) );
 
 	// Afinal = Abase * X_Instance
 	gp.createMul( "Afinal_" + instanceName, areaBase, instvar );
@@ -500,7 +500,7 @@ void Size::printGP_InstanceFooter( GeometricProgram &gp, const RCTranslator &rc,
 
 	Max * delay = gp.createMax( delayName );
 	for ( int i = 0; i < rc.getRCTreeCounter(); i++ )
-		delay->addTerm( gp.requestPosynomial( "_" + ToString(i) + "_" ) );
+		delay->addTerm( gp.requestPosynomialType( "D_" + ToString(i) + "_" + ToString(rc.getOutputNode()) + "_" + instanceName ) );
 } // end method
 
 // -----------------------------------------------------------------------------
@@ -514,7 +514,7 @@ void Size::printGP_InstanceCin( GeometricProgram &gp, const RCTranslator &rc, co
 		int numNMOS = 0;
 
 		const vector<int> &gates = rc.getTriggerTransistors(nodeId);
-		for ( int k = 0; k < 0; k++ ) {
+		for ( int k = 0; k < gates.size(); k++ ) {
 			const int transId = gates[k];
 
 			switch ( rc.getTransistorType(transId) ) {
@@ -525,8 +525,8 @@ void Size::printGP_InstanceCin( GeometricProgram &gp, const RCTranslator &rc, co
 
 		// CinBase = CgateP*numPMOS + CgateN*numNMOS
 		Sum * sumBase = gp.createSum( 
-			gp.createMul( gp.requestConstant("CgateN"), gp.createConstant( numNMOS ) ),
-			gp.createMul( gp.requestConstant("CgateP"), gp.createConstant( numPMOS ) ) );
+			gp.createMul( gp.requestConstantType("CgateN"), gp.createConstant( numNMOS ) ),
+			gp.createMul( gp.requestConstantType("CgateP"), gp.createConstant( numPMOS ) ) );
 
 		// CinFinal = CinBase * Instance_Size
 		gp.createMul( "Cin_" + instanceName + "_" + rc.getNodeName(nodeId), sumBase, gp.requestVariable( instanceName ) );
@@ -548,7 +548,7 @@ void Size::printGP_InstanceCload( GeometricProgram &gp, Circuit * circuit, const
 		if ( net.name != circuit->getVddNet() && net.name != circuit->getGndNet() ) {
 			if (netlist->getIOType(l) == IOTYPE_OUTPUT){
 					if ( circuit->isPrimaryOutput( net.name ) == true ) {
-						cload->addTerm( gp.requestConstant( "Cload" ) );
+						cload->addTerm( gp.requestConstantType( "Cload" ) );
 					} else {
 						const list<Inst*> &sinks = findSinks(circuit, topNetlist, net );
 						for ( list<Inst*>::const_iterator it = sinks.begin(); it != sinks.end(); it++ ) {
@@ -565,7 +565,7 @@ void Size::printGP_InstanceCload( GeometricProgram &gp, Circuit * circuit, const
 void Size::printGP_InstanceRC( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName ) {
 	Variable * instvar = gp.requestVariable( instanceName );
 
-	const string rcTreeName = "_" + ToString(rc.getRCTreeCounter()) + "_";
+	const string rcTreeName = "_" + ToString(rc.getRCTreeCounter()-1) + "_";
 
 	//=============Imprime a capacitância atrelada a cada nodo
 	//cerr << "Transistos connected to each node (via source or drain):\n";
@@ -600,18 +600,25 @@ void Size::printGP_InstanceRC( GeometricProgram &gp, const RCTranslator &rc, con
 	//=============Imprime Elmore Delay de cada nodo +++++++++++++++++++++
 	const vector<int> &upnodes = rc.getUpstreamNodes(rc.getOutputNode());
 
-	PosynomialType * prevDelay = gp.createMul( "D" + rcTreeName + ToString(upnodes.back()) + "_" + instanceName );
-	for ( int k = (upnodes.size()-2); k >= 0; k-- ) {
-
+	PosynomialType * prevDelay = NULL;
+	for ( int k = (upnodes.size()-1); k >= 0; k-- ) {
 		const int m = upnodes[k];
 
-		Sum * delay = gp.createSum(  "D" + rcTreeName + ToString(m) + "_" + instanceName );
-		delay->addTerm( prevDelay );
-		delay->addTerm( gp.createMul(
-			gp.requestPosynomialType( "Rtrans" + ToString(rc.getDriverTransistor(m)) + "_" + instanceName ),
-			gp.requestPosynomialType( "Cdown" + rcTreeName + ToString(m) + "_" + instanceName )	) );
+		const string D = "D" + rcTreeName + ToString(m) + "_" + instanceName;
+		const string R = "Rtrans" + ToString(rc.getDriverTransistor(m)) + "_" + instanceName;
+		const string C = "Cdown" + rcTreeName + ToString(m) + "_" + instanceName;
 
-		prevDelay = delay;
+		if ( prevDelay ) {
+			Sum * delay = gp.createSum( D );
+			delay->addTerm( prevDelay );
+			delay->addTerm( gp.createMul( gp.requestPosynomialType( R ), gp.requestPosynomialType( C ) ) );
+
+			prevDelay = delay;
+		} else {
+			prevDelay = gp.createMul( D,
+				gp.requestPosynomialType( R ),
+				gp.requestPosynomialType( C ) );
+		} // end else
 	} // end for
 } // end function
 
@@ -663,7 +670,9 @@ void Size::printGP_CircuitDelayWalker( GeometricProgram &gp, Circuit * circuit, 
 				inputDelay->addTerm( gp.requestPosynomialType( "D_" + drivers[i]->name ) );
 
 			gp.createSum( "D_" + inst->name, gp.requestPosynomialType( "delay" + inst->name ), inputDelay );
-		} // end if
+		} else {
+			gp.createSum( "D_" + inst->name )->addTerm( gp.requestPosynomialType( "delay" + inst->name ) );
+		} // end else
 
 		inst->instanceSized = true;
 	} // end if
@@ -688,6 +697,26 @@ void Size::printGP_CircuitDelay( GeometricProgram &gp, Circuit * circuit ) {
 		t_net &net = topNetlist->getNet(it->first);
 		printGP_CircuitDelayWalker( gp, circuit, findDriver(circuit, circuit->getTopNetlist(), net ) );
 	} // end for
+
+
+	Max * circuitDelay = gp.createMax( "delay" );
+	for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
+		circuitDelay->addTerm( gp.requestPosynomialType( "D_" + it->first ) );
+} // end method
+
+// -----------------------------------------------------------------------------
+
+void Size::printGP_CircuitArea( GeometricProgram &gp, Circuit * circuit ) {
+	CellNetlst * topNetlist = circuit->getTopNetlist();
+	map<string, Inst> &instances = topNetlist->getInstances();
+
+	Sum * circuitAreaFinal = gp.createSum( "Afinal" );
+	ConstantSum * circuitAreaBase = gp.createConstantSum( "Abase" );
+
+	 for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ) {
+		circuitAreaFinal->addTerm( gp.requestPosynomialType( "Afinal_" + it->first ) );
+		circuitAreaBase->addTerm( gp.requestConstantType( "Abase_" + it->first ) );
+	} // end for
 } // end method
 
 // -----------------------------------------------------------------------------
@@ -701,7 +730,7 @@ void Size::printGP(Circuit * circuit) {
 
 	int counter;
 
-	try {
+	//try {
 		// Create the geometric program.
 		GeometricProgram gp;
 
@@ -729,9 +758,27 @@ void Size::printGP(Circuit * circuit) {
 		// Write delay.
 		printGP_CircuitDelay( gp, circuit );
 
-	} catch ( GeometricProgramException &e ) {
-		cerr << "[EXCEPTION] " << e.what() << "\n";
-	} // end catch
+		// Write area.
+		printGP_CircuitArea( gp, circuit );
+
+		// Write objective.
+		gp.setObjective( gp.requestPosynomialType( "delay" ) );
+
+		// Write area constraints.
+		gp.addInequalityConstraint( gp.requestPosynomialType( "Afinal" ), gp.requestConstantType( "Abase" ) );
+
+		for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ) {
+			gp.addInequalityConstraint( gp.requestConstantType( "Xmin" ), gp.requestVariable( it->first ) );
+			gp.addInequalityConstraint( gp.requestVariable( it->first ), gp.requestConstantType( "Xmax" ) );
+		} // end for
+		// Output
+		ofstream file( "gp.txt" );
+		gp.print( file );
+
+
+	//} catch ( GeometricProgramException &e ) {
+	//	cerr << "[EXCEPTION] " << e.what() << "\n";
+	//} // end catch
 } // end method
 
 // -----------------------------------------------------------------------------
@@ -1339,6 +1386,15 @@ struct FunctorReverseListing {
 
 	
 bool Size::gp(Circuit* c){
+
+
+	if ( c->getTopCell() == "" ) {
+        cout << "Top Cell has not been set!\n";
+        return false;
+    } // end if
+
+	printGP(c);
+	return true;
 
 	//transitorSizing(c,  c->getCellNetlst( c->getTopCell() ), file );
 	//return true;

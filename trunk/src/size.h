@@ -64,6 +64,7 @@ private:
 	void printGP_InstanceFooter( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName );
 	void printGP_InstanceCin( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName );
 	void printGP_InstanceCload( GeometricProgram &gp, Circuit * circuit, const string &instanceName );
+	void printGP_CircuitArea( GeometricProgram &gp, Circuit * circuit );
 	void printGP_CircuitDelay( GeometricProgram &gp, Circuit * circuit );
 	void printGP_CircuitDelayWalker( GeometricProgram &gp, Circuit * circuit, Inst *inst );
 	void printGP(Circuit * circuit);
