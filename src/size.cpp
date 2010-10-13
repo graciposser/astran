@@ -552,7 +552,18 @@ void Size::printGP_InstanceCload( GeometricProgram &gp, Circuit * circuit, const
 					} else {
 						const list<Inst*> &sinks = findSinks(circuit, topNetlist, net );
 						for ( list<Inst*>::const_iterator it = sinks.begin(); it != sinks.end(); it++ ) {
-							cload->addTerm( gp.requestPosynomialType( "Cin_" + instanceName + "_" + net.name ) );
+							Inst *inst =(*it);
+
+							int pin = -1;
+							for ( int k = 0; k < inst->ports.size(); k++ ) {
+								if ( inst->ports[k] == ports[l] ) {
+									pin = k;
+									break;
+								} // end if
+							} // end for
+
+							const string pinname = circuit->getCellNetlst( inst->subCircuit )->getInout(pin);
+							cload->addTerm( gp.requestPosynomialType( "Cin_" + inst->name + "_" + pinname ) );
 						} // end for
 					} // end else
 			} // end if
