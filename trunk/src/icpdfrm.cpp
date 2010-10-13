@@ -7,7 +7,7 @@ IcpdFrm::IcpdFrm( wxWindow* parent ):ICPD_frm( parent ){
 	wxLog::SetActiveTarget( new wxLogTextCtrl(wx_log));
 	
     new Redirector( wx_log, cout, false);
-    new Redirector( wx_log, cerr, true);
+    //new Redirector( wx_log, cerr, true);
 
 	printHeader(cout, "", "");
 
