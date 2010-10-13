@@ -1,5 +1,7 @@
 #include <sstream>
 	using std::ostringstream;
+#include <set>
+	using std::set;
 
 #include "GeometricProgram.h"
 
@@ -189,6 +191,13 @@ Div * GeometricProgram::createDiv( const string &name, PosynomialType * numerato
 // -----------------------------------------------------------------------------
 
 void GeometricProgram::print( ostream &out ) const {
+	// Print variables.
+	out << "gpvar";
+	for ( map<string,Variable*>::const_iterator it = clsVariables.begin(); it != clsVariables.end(); it++ )
+		out << " " << it->second->getName();
+	out << ";\n\n";
+
+	// Print assignments.
 	const int numElements = clsElements.size();
 	for ( int i = 0; i < numElements; i++ ) {
 		const PosynomialType * e = clsElements[i];
@@ -199,29 +208,33 @@ void GeometricProgram::print( ostream &out ) const {
 		if ( e->getName() != "" ) {
 			out << e->getName() << " = ";
 			e->print( out, true );
-			out << "\n";
+			out << ";\n";
 		} // end if
 	} // end for
 
 	out << "\n";
 
+	// Print constraints.
+	out << "constr = [";
+
+	const int numConstraints = clsConstraints.size();
+	for ( int i = 0; i < numConstraints; i++ ) {
+		PosynomialType * posynomial = clsConstraints[i].first;
+		MonomialType * monomial = clsConstraints[i].second;
+
+		out << "\n\t";
+		posynomial->print(out);
+		out << " <= ";
+		monomial->print(out);
+		out << ";";
+	} // end if
+	out << "\n];\n\n";
+
+	// Print objective.
 	if ( clsObjective ) {
-		out << "minimize ";
+		out << "[ result, solution, status ] = gpsolve( ";
 		clsObjective->print(out);
-		out << "\n";
-		out << "subject to\n";
-
-		const int numConstraints = clsConstraints.size();
-		for ( int i = 0; i < numConstraints; i++ ) {
-			PosynomialType * posynomial = clsConstraints[i].first;
-			MonomialType * monomial = clsConstraints[i].second;
-
-			out << "\t";
-			posynomial->print(out);
-			out << " <= ";
-			monomial->print(out);
-			out << "\n";
-		} // end if
+		out << ", constr, 'min' )\n\n";
 	} else {
 		out << "[WARNING] Objective function was not set.\n";
 	} // end else
@@ -393,7 +406,7 @@ void ConstantMul::print( ostream &out, const bool unroll ) const {
 	} else {
 		for ( int i = 0; i < clsTerms.size(); i++ ) {
 			if ( i > 0 )
-				out << " + ";
+				out << " * ";
 			clsTerms[i]->print(out);
 		} // end for
 	} // end else
@@ -589,7 +602,7 @@ StandardPosynomial * Div::toStandardPosynomial( StandardGeometricProgram &gp ) c
 // -----------------------------------------------------------------------------
 
 StandardPosynomial * Max::toStandardPosynomial( StandardGeometricProgram &gp ) const {
-	throw GeometricProgramException( "Max could not be translated into a StandardPosynomial." );
+	throw GeometricProgramException( "Max could not be translated into a StandardPosynomial. Call ungeneralize()." );
 } // end method
 
 // =============================================================================
@@ -625,16 +638,45 @@ StandardMonomial * StandardGeometricProgram::createMonomial() {
 // -----------------------------------------------------------------------------
 
 void StandardGeometricProgram::print( ostream &out ) const {
-	out << "minimize ";
-	clsObjective->print(out);
-	out << "\n";
-	out << "subject to\n";
-
 	const int numConstraints = clsConstraints.size();
-	for ( int i = 0; i < numConstraints; i++ ) {
-		out << "\t";
-		clsConstraints[i]->print(out);
-		out << " <= 1\n";
-	} // end if
 
+	// Print variables.
+	set<string> variables;
+	for ( int i = 0; i < numConstraints; i++ ) {
+		StandardPosynomial * posy = clsConstraints[i];
+
+		const int numMonomials = posy->getNumMonomials();
+		for ( int j = 0; j < numMonomials; j++ ) {
+			StandardMonomial * monomial = posy->getMonomial(j);
+
+			const int numTerms = monomial->getNumTerms();
+			for ( int k = 0; k < numTerms; k++ )
+				variables.insert( monomial->getTerm(k).propVariable );
+		} // end for
+	} // end for
+
+	out << "gpvar";
+	for ( set<string>::const_iterator it = variables.begin(); it != variables.end(); it++ )
+		out << " " << *it;
+	out << ";\n\n";
+
+	// Print constraints.
+	out << "constr = [";
+	for ( int i = 0; i < numConstraints; i++ ) {
+		out << "\n\t";
+		clsConstraints[i]->print(out);
+		out << " <= 1;";
+	} // end if
+	out << "\n];\n\n";
+
+	// Print objective.
+	if ( clsObjective ) {
+		out << "[ result, solution, status ] = gpsolve( ";
+		clsObjective->print(out);
+		out << ", constr, 'min' )\n\n";
+	} else {
+		out << "[WARNING] Objective function was not set.\n";
+	} // end else
+
+	out << std::flush;
 } // end method

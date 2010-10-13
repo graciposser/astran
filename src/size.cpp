@@ -765,16 +765,32 @@ void Size::printGP(Circuit * circuit) {
 		gp.setObjective( gp.requestPosynomialType( "delay" ) );
 
 		// Write area constraints.
-		gp.addInequalityConstraint( gp.requestPosynomialType( "Afinal" ), gp.requestConstantType( "Abase" ) );
+		gp.addInequalityConstraint( gp.requestPosynomialType( "Afinal" ), 
+			gp.createConstantMul( gp.requestConstantType( "constrArea" ), gp.requestConstantType( "Abase" ) ) );
 
 		for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ) {
 			gp.addInequalityConstraint( gp.requestConstantType( "Xmin" ), gp.requestVariable( it->first ) );
 			gp.addInequalityConstraint( gp.requestVariable( it->first ), gp.requestConstantType( "Xmax" ) );
 		} // end for
-		// Output
-		ofstream file( "gp.txt" );
-		gp.print( file );
 
+		// Output
+		ofstream file;
+		
+		file.open( "gp-generalized.m" );
+		gp.print( file );
+		file.close();
+
+		StandardGeometricProgram sgp;
+		gp.ungeneralize();
+		gp.standardize( sgp );
+
+		file.open( "gp-ungeneralized.m" );
+		gp.print( file );
+		file.close();
+
+		file.open( "gp-standard.m" );
+		sgp.print( file );
+		file.close();
 
 	//} catch ( GeometricProgramException &e ) {
 	//	cerr << "[EXCEPTION] " << e.what() << "\n";
