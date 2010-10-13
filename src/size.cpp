@@ -677,7 +677,7 @@ void Size::printGP_CircuitDelayWalker( GeometricProgram &gp, Circuit * circuit, 
 
 		if ( drivers.size() > 0 ) {
 			Max * inputDelay = gp.createMax();
-			for ( int i = 1; i < drivers.size(); i++ )
+			for ( int i = 0; i < drivers.size(); i++ )
 				inputDelay->addTerm( gp.requestPosynomialType( "D_" + drivers[i]->name ) );
 
 			gp.createSum( "D_" + inst->name, gp.requestPosynomialType( "delay" + inst->name ), inputDelay );
