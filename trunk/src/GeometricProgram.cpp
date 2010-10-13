@@ -22,7 +22,7 @@ GeometricProgram::GeometricProgram() {
 
 Variable * GeometricProgram::createInternalVariable() {
 	ostringstream oss;
-	oss << "_var" << clsInternalVariableCounter;
+	oss << "var" << clsInternalVariableCounter;
 	clsInternalVariableCounter++;
 
 	return createVariable( oss.str() );
