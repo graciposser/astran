@@ -202,9 +202,11 @@ void GeometricProgram::print( ostream &out ) const {
 	for ( int i = 0; i < numElements; i++ ) {
 		const PosynomialType * e = clsElements[i];
 
+		// Skip variables.
 		if ( typeid(*e) == typeid( Variable ) )
 			continue;
 
+		// Print the element.
 		if ( e->getName() != "" ) {
 			out << e->getName() << " = ";
 			e->print( out, true );
@@ -329,11 +331,21 @@ void GeometricProgram::setObjective( PosynomialType * objective ) {
 void GeometricProgram::ungeneralize() {
 	if ( clsObjective )
 		clsObjective = clsObjective->ungeneralize(*this);
-	
-	const int numConstraints = clsConstraints.size();
-	for ( int i = 0; i < numConstraints; i++ ) {
-		clsConstraints[i].first->ungeneralize(*this);
-	} // end if
+
+	// [ADIVICE] Since the constraint vector may be modifieid by addition of
+	// new constraints, it may change its internal pointer to element array
+	// making a reference to a element invalid.
+
+	const int originalNumConstraints = clsConstraints.size();
+
+	vector<PosynomialType *> ungeneralizedConstraints( originalNumConstraints, (PosynomialType * ) NULL );
+
+	for ( int i = 0; i < originalNumConstraints; i++ )
+		ungeneralizedConstraints[i] = clsConstraints[i].first->ungeneralize(*this);
+
+	for ( int i = 0; i < originalNumConstraints; i++ )
+		if ( ungeneralizedConstraints[i] )
+			clsConstraints[i].first = ungeneralizedConstraints[i];
 } // end method
 
 // -----------------------------------------------------------------------------
