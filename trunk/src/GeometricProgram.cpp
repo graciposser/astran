@@ -7,7 +7,6 @@
 
 // [TODO] Criar templete pra createXXX();
 // [TODO] Verificar se nome já existe.
-// [TODO] Destructors. Free memory!
 // [TODO] Verificar se os nomes são válidos. Reserver os iniando com underline
 //        para variáveis internas.
 
@@ -17,6 +16,13 @@ GeometricProgram::GeometricProgram() {
 	clsObjective = NULL;
 	clsInternalVariableCounter = 0;
 } // end constructor
+
+// -----------------------------------------------------------------------------
+
+GeometricProgram::~GeometricProgram() {
+	for ( int i = 0; i < clsElements.size(); i++ )
+		delete clsElements[i];
+} // end destructor
 
 // -----------------------------------------------------------------------------
 
@@ -334,7 +340,7 @@ void GeometricProgram::ungeneralize() {
 
 	// [ADIVICE] Since the constraint vector may be modifieid by addition of
 	// new constraints, it may change its internal pointer to element array
-	// making a reference to a element invalid.
+	// making a reference to an element becomes invalid.
 
 	const int originalNumConstraints = clsConstraints.size();
 
@@ -620,6 +626,13 @@ StandardPosynomial * Max::toStandardPosynomial( StandardGeometricProgram &gp ) c
 // =============================================================================
 // Standard Geometric Program Descriptor
 // =============================================================================
+
+StandardGeometricProgram::~StandardGeometricProgram() {
+	for ( int i = 0; i < clsElements.size(); i++ )
+		delete clsElements[i];
+} // end destructor
+
+// -----------------------------------------------------------------------------
 
 void StandardGeometricProgram::setObjective( StandardPosynomial * objective ) {
 	clsObjective = objective;

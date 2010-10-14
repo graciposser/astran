@@ -484,7 +484,7 @@ class GeometricProgramException : public std::exception {
 }; // end class
 
 // =============================================================================
-// Geometric Program Descriptor
+// Standard Geometric Program Descriptor
 // =============================================================================
 
 class StandardGeometricProgram {
@@ -502,6 +502,8 @@ private:
 	// [TODO]
 
 public:
+
+	~StandardGeometricProgram();
 
 	StandardPosynomial * createPosynomial();
 	StandardMonomial * createMonomial();
@@ -613,6 +615,7 @@ private:
 
 public:
 	GeometricProgram();
+	~GeometricProgram();
 
 	Variable * createInternalVariable();
 
