@@ -57,17 +57,21 @@ private:
 	bool printSetupCarac(Circuit& circuit, ofstream &simulate, ofstream &copyarq, string &top);
 	bool printScriptCarac(Circuit& circuit, string &top);
 
-	void printGP_Constants( GeometricProgram &gp, const string &technology, const double parameterCload, const double parameterMaxArea );
+	void printGP_Constants( GeometricProgram &gp, const string &technology, const double parameterCload, const double parameterMaxArea, const double parameterDelay, const double parameterMaxCin );
 	void printGP_Instance( GeometricProgram &gp, RCTranslator &rc, Circuit * circuit, const string &instanceName );
 	void printGP_InstanceHeader( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName );
 	void printGP_InstanceRC( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName );
 	void printGP_InstanceFooter( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName );
 	void printGP_InstanceCin( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName );
+	void printGP_InstanceCinConstraints( GeometricProgram &gp, Circuit * circuit );
 	void printGP_InstanceCload( GeometricProgram &gp, Circuit * circuit, const string &instanceName );
 	void printGP_CircuitArea( GeometricProgram &gp, Circuit * circuit );
 	void printGP_CircuitDelay( GeometricProgram &gp, Circuit * circuit );
 	void printGP_CircuitDelayWalker( GeometricProgram &gp, Circuit * circuit, Inst *inst );
 	void printGP(Circuit * circuit, const string &target);
+	class linev{
+		public: vector <string> parts;			
+	};
 
 	void SetupRCTranslators( Circuit * circuit, vector< RCTranslator > &rcs );
 	void SetupRCTranslator( Circuit * circuit, RCTranslator &rc, Inst &inst );

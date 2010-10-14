@@ -93,7 +93,10 @@ class Circuit {
 
 	bool isPrimaryInput( const string &netname );
 	bool isPrimaryOutput( const string &netname );
-
+	
+	bool isPrimaryInput( const Inst &inst );
+	bool isPrimaryOutput( const Inst &inst );
+	
 //	void printCells();
 //	void printNetlist();
 //	bool checkCells();
