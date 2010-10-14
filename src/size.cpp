@@ -375,7 +375,7 @@ void Size::printRC( const RCTranslator &rc, string &D, const int cont, ofstream 
 
 // -----------------------------------------------------------------------------
 
-void Size::printGP_Constants( GeometricProgram &gp, const string &technology, const double parameterCload, const double parameterMaxArea ) {
+void Size::printGP_Constants( GeometricProgram &gp, const string &technology, const double parameterCload, const double parameterMaxArea, const double parameterDelay, const double parameterMaxCin ) {
 	//values for 350nm technology
 	double cgateP = 5.2219E-16 * 1.6; //*1.6, pois � a rela��o P/N para a tecnologia 350n
     double cgateN = 1.3767e-15;
@@ -408,6 +408,8 @@ void Size::printGP_Constants( GeometricProgram &gp, const string &technology, co
 	// Create constants.
 	gp.createConstant( "Cload", parameterCload );
 	gp.createConstant( "constrArea", parameterMaxArea );
+	gp.createConstant( "constrCin", parameterMaxCin );
+	gp.createConstant( "maxDelay", parameterDelay );
 
 	if (technology == "350nm"){
 		gp.createConstant( "Xmax", Xmax );
@@ -524,12 +526,42 @@ void Size::printGP_InstanceCin( GeometricProgram &gp, const RCTranslator &rc, co
 		} // end for
 
 		// CinBase = CgateP*numPMOS + CgateN*numNMOS
-		Sum * sumBase = gp.createSum( 
-			gp.createMul( gp.requestConstantType("CgateN"), gp.createConstant( numNMOS ) ),
-			gp.createMul( gp.requestConstantType("CgateP"), gp.createConstant( numPMOS ) ) );
+		ConstantSum * sumBase = gp.createConstantSum( "Cin_Base_" + instanceName + "_" + rc.getNodeName(nodeId),
+			gp.createConstantMul( gp.requestConstantType("CgateN"), gp.createConstant( numNMOS ) ),
+			gp.createConstantMul( gp.requestConstantType("CgateP"), gp.createConstant( numPMOS ) ) );
 
 		// CinFinal = CinBase * Instance_Size
 		gp.createMul( "Cin_" + instanceName + "_" + rc.getNodeName(nodeId), sumBase, gp.requestVariable( instanceName ) );
+	} // end for
+} // end method
+
+// -----------------------------------------------------------------------------
+
+void Size::printGP_InstanceCinConstraints( GeometricProgram &gp, Circuit * circuit ) {
+	CellNetlst * topNetlist = circuit->getTopNetlist();
+	map<string, Inst> &instances = topNetlist->getInstances();
+	
+	for ( map<string, Inst>::iterator it = instances.begin(); it != instances.end(); it++ ) {
+		Inst &inst = it->second;
+		
+		CellNetlst * netlist = circuit->getCellNetlst( inst.subCircuit );
+
+		vector<int> &ports = inst.ports;
+		for (int l=0; l<ports.size(); l++) {
+			t_net &net = topNetlist->getNet(ports[l]);
+			if ( net.name != circuit->getVddNet() && net.name != circuit->getGndNet() ) {
+				if (netlist->getIOType(l) == IOTYPE_INPUT){
+					if ( circuit->isPrimaryInput( net.name ) ){
+						const string id = "_" + inst.name + "_" + netlist->getInout(l);
+						
+						gp.addInequalityConstraint( 
+							gp.requestPosynomialType("Cin" + id ), 
+							gp.createConstantMul( gp.requestConstantType("constrCin"), gp.requestConstantType("Cin_Base" + id ) )
+						);
+					} // end if
+				} // end if
+			} //  end if
+		} // end for
 	} // end for
 } // end method
 
@@ -750,7 +782,7 @@ void Size::printGP(Circuit * circuit, const string &target ) {
 			gp.createVariable( it->first );
 
 		// Write constants.
-		printGP_Constants( gp, "45nm", 10e-15, 2 );
+		printGP_Constants( gp, "45nm", 2*1.87367e-16, 5, 1e-10, 4 );
 
 		// Write cins.
 		counter = 0;
@@ -781,7 +813,7 @@ void Size::printGP(Circuit * circuit, const string &target ) {
 		} else if ( target == "area" ) {
 			gp.setObjective( gp.requestPosynomialType( "Afinal" ) );
 
-			gp.addInequalityConstraint( gp.requestPosynomialType( "delay" ), gp.createConstant( 1 ) );
+			gp.addInequalityConstraint( gp.requestPosynomialType( "delay" ), gp.requestConstantType( "maxDelay" ) );
 		} else {
 			throw GeometricProgramException( "Invalid target minimization! Should be 'delay' or 'area'." );
 		} // end else
@@ -791,6 +823,9 @@ void Size::printGP(Circuit * circuit, const string &target ) {
 			gp.addInequalityConstraint( gp.requestConstantType( "Xmin" ), gp.requestVariable( it->first ) );
 			gp.addInequalityConstraint( gp.requestVariable( it->first ), gp.requestConstantType( "Xmax" ) );
 		} // end for
+				
+		// Write cins.
+		printGP_InstanceCinConstraints( gp, circuit );	
 
 		// Output
 		ofstream file;
@@ -1422,23 +1457,25 @@ struct FunctorReverseListing {
 	
 bool Size::gp(Circuit* c){
 
-
+	
 	if ( c->getTopCell() == "" ) {
         cout << "Top Cell has not been set!\n";
         return false;
     } // end if
 
-	printGP(c, "area" );
+	printGP(c, "delay" ); // area, delay
 	return true;
+	
+
 
 	//transitorSizing(c,  c->getCellNetlst( c->getTopCell() ), file );
 	//return true;
-	double constrArea =  2;
-	double constrDelay = 1.04057e-10;
+	double constrArea =  5;
+	double constrDelay = 1.13904e-11;
 	string technology = "45nm";
 	string optimize = "delay";
 	string sizingType = "gate";
-	double Cload = 10*1.87367e-16;
+	double Cload = 2*1.87367e-16;
 	double restrCin = 4;
 	
 	ofstream file( "gp.m" );
@@ -1977,7 +2014,12 @@ bool Size::gp(Circuit* c){
 	
 	*/
 	
-			
+	subckt << ".SUBCKT INV_X1 A ZN VCC GND" << endl;
+	subckt << "M_I_0 ZN A GND GND NMOS_VTG L=0.05E-6 W=0.09E-6" << endl;
+	subckt << "M_I_7 ZN A VCC VCC PMOS_VTG L=0.05E-6 W=0.135E-6" << endl;
+	subckt << ".ENDS INV_X1" << endl << endl;
+	
+	
 	for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
 		printSpiceCarac(*c, instances_it->second, simulate, copyarq, top, subckt);
 	}//end for
@@ -1989,7 +2031,8 @@ bool Size::gp(Circuit* c){
 	simulate.close();
 	
 	copyarq << "scp setup_" << top << ".txt subckt_" << top << ".sp script_" << top;  
-	copyarq << " simulate.sh 143.54.10.45:~/Desktop/carac/carac_45nm/." << endl;
+	copyarq << " simulate.sh verilogfile.v 143.54.10.45:~/Desktop/carac/carac_45nm/." << endl;
+	copyarq << "scp verilogfile.v 143.54.10.45:~/Desktop/sintese45nm/LIVC17_mapped.v" << endl;
 	copyarq.close();
 	printSetupCarac(*c, simulate, copyarq, top); 
 	printScriptCarac(*c, top);
@@ -2023,7 +2066,7 @@ bool Size::printSpiceCarac(Circuit& circuit, Inst &instance, ofstream &simulate,
 		return false;
 		
 	CellNetlst *netlist = circuit.getCellNetlst( instance.subCircuit );
-	
+
 	subckt << ".SUBCKT " <<  instance.subCircuit << "_" << instance.name;
 	vector<int> &ports = instance.ports;
 	for ( vector<int>::iterator inouts_it=netlist->getInouts().begin(); inouts_it != netlist->getInouts().end(); inouts_it++ )
@@ -2090,12 +2133,22 @@ bool Size::printSetupCarac(Circuit& circuit, ofstream &simulate, ofstream &copya
 	setup << "\tresistance = 10K;" << endl; 
 	setup << "};\n" << endl;
 	
+	setup << "Index INV_X1 {" << endl;
+	setup << "\tslew = 0.007500N 0.018750N 0.037500N 0.075000N 0.150000N 0.300000N 0.600000N ;" << endl;
+	setup << "\tload = 0.000400P 0.000800P 0.001600P ;" << endl;
+	setup << "} ;\n" << endl;
+	
 	for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
 		setup << "Index " <<  instances_it->second.subCircuit << "_" << instances_it->second.name << " {" << endl;
 		setup << "\tslew = 0.007500N 0.018750N 0.037500N 0.075000N 0.150000N 0.300000N 0.600000N ;" << endl;
 		setup << "\tload = 0.000400P " << instances_it->second.Cload << " " << instances_it->second.Cload*2 << " ;" << endl;
 		setup << "} ;\n" << endl;
 	}//end for
+
+	setup << "Group INV_X1 {" << endl;
+	setup << "\tCELL = *INV_X1 ;" << endl;
+	setup << "} ;\n" << endl;	
+	
 	
 	for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
 		setup << "Group " << instances_it->second.subCircuit << "_" << instances_it->second.name << " {" << endl;
@@ -2136,6 +2189,7 @@ bool Size::printSetupCarac(Circuit& circuit, ofstream &simulate, ofstream &copya
 	setup << "} ;\n" << endl;
 	
 	setup << "set index (best,typical,worst) {" << endl;
+	setup << "Group (INV_X1) = INV_X1 ;" << endl;
 	for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
 		setup << "Group (" << instances_it->second.subCircuit << "_" << instances_it->second.name << ") = " << instances_it->second.subCircuit << "_" << instances_it->second.name << " ;" << endl;
 	} // end for
@@ -2386,7 +2440,205 @@ double Size::FO4Sizing( Circuit * circuit, Inst * inst, double Cload, map<string
 // -----------------------------------------------------------------------------
 
 bool Size::fo4(Circuit *circuit) {
-	CellNetlst *netlist = circuit->getCellNetlst(circuit->getTopCell());
+	
+	//Spice to VERILOG - Jozeanne
+	ofstream outFile( "verilogfile.v");//abre arquivo para escrita ou cria um novo
+       
+	string top = circuit->getTopCell();
+	cout<< top <<"\n";
+	CellNetlst *netlist = circuit->getCellNetlst( circuit->getTopCell() );
+
+	cout << "  Criando arquivo verilog a partir do Top Cell..";
+	 
+	vector <string> input;
+	vector <string> output;
+	//pega as interfaces do arquivo .sp e escreve no arquivo .v como input e output
+	map<string, Interface> *interfaces = circuit->getInterfaces();
+	map<string, Interface>::iterator interfaces_it;
+	for ( interfaces_it = interfaces->begin(); interfaces_it != interfaces->end(); interfaces_it++ ) {      
+		if ( interfaces_it->second.ioType == IOTYPE_INPUT ){
+			//cout <<  "INPUT: "  << interfaces_it->first << "\n";
+			input.push_back(interfaces_it->first);
+		}
+		if ( interfaces_it->second.ioType == IOTYPE_OUTPUT ){
+			//cout <<  "OUTPUT: " << interfaces_it->first << "\n";
+			output.push_back(interfaces_it->first);
+		}  
+	}//end for
+   
+	outFile << "\n";
+	outFile << "// ASTRAN";
+	outFile << "\n\n";
+
+//module filename(input,output);
+
+	outFile << "module " << top << "(";   
+   for(int ind=0;ind<input.size();ind++){
+	  outFile << input[ind];
+	   if(ind == input.size() -1) { 
+		if(output.size()==0)
+		  outFile << ");";
+	   }  
+	  else
+		outFile << ", ";
+   }
+  if(input.size()!=0)
+	  outFile << ", ";
+	 
+  for(int ind=0;ind<output.size();ind++){
+	outFile << output[ind];
+	if(ind == output.size() -1)  
+		outFile << ");";
+	else
+		outFile << ", ";
+  }  
+	outFile << "\n";
+
+
+	outFile << "  input ";
+	for(int ind=0;ind<input.size();ind++){
+		outFile << input[ind];
+		if(ind == input.size() -1)  
+			outFile << ";";
+		else
+			outFile << ", ";
+	}  
+	outFile << "\n";
+   
+	outFile << "  output ";
+	for(int ind=0;ind<output.size();ind++){
+		outFile << output[ind];
+		if(ind == output.size() -1)  
+			outFile << ";";
+		else
+			outFile << ", ";
+	}  
+	outFile << "\n";
+  
+   //wire input
+   outFile << "  wire ";
+   for(int ind=0;ind<input.size();ind++){
+	 outFile << input[ind];
+	 if(ind == input.size() -1)  
+		outFile << ";";
+	 else
+		outFile << ", ";
+   }  
+   outFile << "\n";
+	///
+   //wire output   
+   outFile << "  wire ";
+   for(int ind=0;ind<output.size();ind++){
+	  outFile << output[ind];
+	  if(ind == output.size() -1)  
+		 outFile << ";";
+	  else
+		 outFile << ", ";
+   }  
+   outFile << "\n";
+
+	//wire nets que nao sao nem input nem output   
+	vector <string> netsv;
+	map<string,Inst> &instances = netlist->getInstances();
+	for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ) {
+			   
+		for(vector<int>::iterator tmp2=it->second.ports.begin(); tmp2!=it->second.ports.end(); ++tmp2){
+			string & net = netlist->getNetName(*tmp2) ;
+			int same=0; //se same=1 tem esse net no input ou no output ou ja foi colocado no vetor
+		   
+			for(int ind=0;ind<input.size();ind++)
+				if(net == input[ind])
+					same=1;
+			for(int ind=0;ind<output.size();ind++)
+				if(net == output[ind])
+					same=1;
+			if(netsv.size()!=0)
+				for(int ind=0;ind<netsv.size();ind++)
+					if(net == netsv[ind])
+						same=1;
+		   
+			if(same != 1)
+			   netsv.push_back(netlist->getNetName(*tmp2));
+		}   
+		//  c++
+	}//fim for
+
+
+	//wire nets (8 nets por linha)
+	int counter=0;
+	for(int ind=0;ind<netsv.size();ind++){
+		if(counter == 0)
+			outFile << "  wire ";
+		if(netsv[ind] != "VCC" && netsv[ind] != "GND" ){
+			if(counter > 0)
+				outFile << ", ";
+			outFile << netsv[ind] ;   
+			counter++;
+		}
+		if(counter == 8 || ind == netsv.size()-1){
+			outFile << ";\n";
+			counter =0;
+		}
+	}
+   
+	//  OAI211_X2 g3893(.A (n_603), .B (n_906), .C1 (n_1057), .C2 (n_516),.ZN (G551));     
+	vector <linev> linesv;
+	//map<string,Inst> &instances = netlist->getInstances();
+	for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ) {
+		linev onelinev;
+		onelinev.parts.push_back(it->second.subCircuit);
+		onelinev.parts.push_back(it->first);
+		//outFile << "  " << it->second.subCircuit << " " << it->first ;
+		//outFile << "(";
+	   
+		for(vector<int>::iterator tmp2=it->second.ports.begin(); tmp2!=it->second.ports.end(); ++tmp2)//{
+			onelinev.parts.push_back(netlist->getNetName(*tmp2));
+		//string & net = netlist->getNetName(*tmp2) ;
+		linesv.push_back(onelinev);
+		//  c++
+	}//fim for
+   
+	vector <linev> compl_linesv;
+	for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ) {
+		CellNetlst *netlist2 = circuit->getCellNetlst( it->second.subCircuit);
+		vector<int> &inouts = netlist2->getInouts();    
+		vector<t_net> &nets= netlist2->getNets();  
+		linev onelinev;
+		onelinev.parts.push_back(it->second.subCircuit);
+		onelinev.parts.push_back(it->first);
+		//cout << it->first << it->second.subCircuit <<" Ports: ";
+		for(int c=0; c<inouts.size(); c++){
+			onelinev.parts.push_back(nets[inouts[c]].name);
+		}
+		compl_linesv.push_back(onelinev);
+	}//end for
+   
+	for(int ind=0;ind<linesv.size();ind++){
+		outFile<< "  " <<linesv[ind].parts[0] << "_" << linesv[ind].parts[1] << " " << linesv[ind].parts[1] <<"(";
+		for(int ind_in=2;ind_in<linesv[ind].parts.size();ind_in++){
+			if(linesv[ind].parts[ind_in] != "VCC" && linesv[ind].parts[ind_in]!= "GNC"){
+				outFile << "."  <<compl_linesv[ind].parts[ind_in] << " (" <<linesv[ind].parts[ind_in] << ")";
+				if(linesv[ind].parts[ind_in+1] != "VCC" && linesv[ind].parts[ind_in+1]!= "GNC")
+					outFile << ", ";
+				else
+					outFile << ");";
+			}
+			else
+				ind_in=linesv[ind].parts.size();
+		}  
+		outFile << "\n";  
+	}
+	outFile << "endmodule" << endl;
+	outFile.close();
+   
+	return true;   
+	
+	
+	//FO4
+	
+	
+	
+	//CellNetlst *netlist = circuit->getCellNetlst(circuit->getTopCell());
 	//values for 350nm
 	double Xn_350 = 1;
 	double Xp_350 = 1.6;
@@ -2398,7 +2650,7 @@ bool Size::fo4(Circuit *circuit) {
 	double cinport = 0;
 	map<string,bool> outputs;
 	
-	map<string,Inst> &instances = netlist->getInstances();
+	//map<string,Inst> &instances = netlist->getInstances();
 	map<string, CellNetlst>::iterator cells_it;
 	
 	//SET ALL NETS FALSE (INPUT)
@@ -2435,7 +2687,7 @@ bool Size::fo4(Circuit *circuit) {
 		
     } // end for
 	
-	map<string, Interface> *interfaces = circuit->getInterfaces();
+	//map<string, Interface> *interfaces = circuit->getInterfaces();
     for ( map<string, Interface>::iterator interfaces_it = interfaces->begin(); interfaces_it != interfaces->end(); interfaces_it++ ) {
 
 		if ( interfaces_it->second.ioType != IOTYPE_OUTPUT ) continue;

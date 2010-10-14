@@ -2,6 +2,8 @@
  *   Copyright (C) 2005 by Adriel Mota Ziesemer Jr.                         *
  *   amziesemerj[at]inf.ufrgs.br                                            *
  ****************************************************************************/
+#include <vector>
+	using std::vector;
 #include "circuit.h"
 
 Circuit::Circuit(){
@@ -316,5 +318,29 @@ bool Circuit::isPrimaryOutput( const string &netname ) {
 		if ( it->second.ioType == IOTYPE_OUTPUT && it->first == netname )
 			return true;
     } // end for
+	return false;
+} // end method
+
+// -----------------------------------------------------------------------------
+
+bool Circuit::isPrimaryInput( const Inst &inst ) {
+	const vector<int> &ports = inst.ports;
+	for ( int i =0; i < ports.size(); i++ ) {
+		if ( isPrimaryInput( getTopNetlist()->getNetName(ports[i]) ) )
+			return true;
+	} // end for   
+	
+	return false;
+} // end method
+
+// -----------------------------------------------------------------------------
+
+bool Circuit::isPrimaryOutput( const Inst &inst ) {
+	const vector<int> &ports = inst.ports;
+	for ( int i =0; i < ports.size(); i++ ) {
+		if ( isPrimaryOutput( getTopNetlist()->getNetName(ports[i]) ) )
+			return true;
+	} // end for   
+	
 	return false;
 } // end method
