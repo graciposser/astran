@@ -21,6 +21,7 @@ class GeometricProgram;
 class StandardGeometricProgram;
 
 // [TODO] Repensar friendship :)
+// [TODO] Criar uma maneira uniformizada de tratar tipos compostos.
 
 class StandardPosynomialType {
 public:
@@ -278,7 +279,7 @@ public:
 
 	virtual void print( ostream &out, const bool unroll = false ) const;
 	virtual StandardMonomial * toStandardMonomial( StandardGeometricProgram &gp ) const;
-	
+
 }; // end class
 
 // -----------------------------------------------------------------------------
@@ -680,8 +681,5 @@ public:
 	void print( ostream &out ) const;
 	
 }; // end class
-
-
-
 
 #endif

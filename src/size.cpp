@@ -732,7 +732,7 @@ void Size::printGP_CircuitArea( GeometricProgram &gp, Circuit * circuit ) {
 
 // -----------------------------------------------------------------------------
 
-void Size::printGP(Circuit * circuit) {
+void Size::printGP(Circuit * circuit, const string &target ) {
 	CellNetlst * topNetlist = circuit->getTopNetlist();
 	map<string,Inst> &instances = topNetlist->getInstances();
 
@@ -772,13 +772,21 @@ void Size::printGP(Circuit * circuit) {
 		// Write area.
 		printGP_CircuitArea( gp, circuit );
 
-		// Write objective.
-		gp.setObjective( gp.requestPosynomialType( "delay" ) );
+		// Write objective and specific constraints.
+		if ( target == "delay" ) {
+			gp.setObjective( gp.requestPosynomialType( "delay" ) );
 
-		// Write area constraints.
-		gp.addInequalityConstraint( gp.requestPosynomialType( "Afinal" ), 
-			gp.createConstantMul( gp.requestConstantType( "constrArea" ), gp.requestConstantType( "Abase" ) ) );
+			gp.addInequalityConstraint( gp.requestPosynomialType( "Afinal" ),
+				gp.createConstantMul( gp.requestConstantType( "constrArea" ), gp.requestConstantType( "Abase" ) ) );
+		} else if ( target == "area" ) {
+			gp.setObjective( gp.requestPosynomialType( "Afinal" ) );
 
+			gp.addInequalityConstraint( gp.requestPosynomialType( "delay" ), gp.createConstant( 1 ) );
+		} else {
+			throw GeometricProgramException( "Invalid target minimization! Should be 'delay' or 'area'." );
+		} // end else
+
+		// Write instance size constraints.
 		for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ) {
 			gp.addInequalityConstraint( gp.requestConstantType( "Xmin" ), gp.requestVariable( it->first ) );
 			gp.addInequalityConstraint( gp.requestVariable( it->first ), gp.requestConstantType( "Xmax" ) );
@@ -793,12 +801,12 @@ void Size::printGP(Circuit * circuit) {
 
 		StandardGeometricProgram sgp;
 		gp.ungeneralize();
-		gp.standardize( sgp );
 
 		file.open( "gp-ungeneralized.m" );
 		gp.print( file );
 		file.close();
 
+		gp.standardize( sgp );
 		file.open( "gp-standard.m" );
 		sgp.print( file );
 		file.close();
@@ -1420,7 +1428,7 @@ bool Size::gp(Circuit* c){
         return false;
     } // end if
 
-	printGP(c);
+	printGP(c, "area" );
 	return true;
 
 	//transitorSizing(c,  c->getCellNetlst( c->getTopCell() ), file );

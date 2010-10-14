@@ -67,7 +67,7 @@ private:
 	void printGP_CircuitArea( GeometricProgram &gp, Circuit * circuit );
 	void printGP_CircuitDelay( GeometricProgram &gp, Circuit * circuit );
 	void printGP_CircuitDelayWalker( GeometricProgram &gp, Circuit * circuit, Inst *inst );
-	void printGP(Circuit * circuit);
+	void printGP(Circuit * circuit, const string &target);
 
 	void SetupRCTranslators( Circuit * circuit, vector< RCTranslator > &rcs );
 	void SetupRCTranslator( Circuit * circuit, RCTranslator &rc, Inst &inst );
