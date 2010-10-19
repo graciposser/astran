@@ -532,7 +532,7 @@ bool elmoredelay::elmoreFO4(Circuit* c){
 	double areaCircuit = 0;
 	double areaBase = 0;
 	double CloadInst;
-	double Cload = 10*1.87367e-16;
+	double Cload = 4*1.87367e-16;
 	double delayCircuit;
 	double delayOld = 0;
 	map<string,bool> outputs;

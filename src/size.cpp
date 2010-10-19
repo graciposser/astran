@@ -782,7 +782,7 @@ void Size::printGP(Circuit * circuit, const string &target ) {
 			gp.createVariable( it->first );
 
 		// Write constants.
-		printGP_Constants( gp, "45nm", 2*1.87367e-16, 5, 1e-10, 4 );
+		printGP_Constants( gp, "45nm", 4*1.87367e-16, 2.5, 4.29113e-10, 3 ); //Cload, constrArea, constrDelay, constrCin
 
 		// Write cins.
 		counter = 0;
@@ -1457,7 +1457,7 @@ struct FunctorReverseListing {
 	
 bool Size::gp(Circuit* c){
 
-	
+	/*
 	if ( c->getTopCell() == "" ) {
         cout << "Top Cell has not been set!\n";
         return false;
@@ -1465,18 +1465,18 @@ bool Size::gp(Circuit* c){
 
 	printGP(c, "delay" ); // area, delay
 	return true;
-	
+	*/
 
 
 	//transitorSizing(c,  c->getCellNetlst( c->getTopCell() ), file );
 	//return true;
-	double constrArea =  5;
+	double constrArea =  2.5;
 	double constrDelay = 1.13904e-11;
 	string technology = "45nm";
 	string optimize = "delay";
 	string sizingType = "gate";
-	double Cload = 2*1.87367e-16;
-	double restrCin = 4;
+	double Cload = 4*1.87367e-16;
+	double restrCin = 3;
 	
 	ofstream file( "gp.m" );
 
@@ -2028,11 +2028,12 @@ bool Size::gp(Circuit* c){
 	simulate << "source /opt/ferramentas/scripts/setup.synopsys" << endl;
 	simulate << "elc -S script_" << top << endl;
 	simulate << "sh clear.sh" << endl;
+	simulate << "cp -rf lib_" << top << ".lib ../../sintese45nm/" << endl;
 	simulate.close();
 	
 	copyarq << "scp setup_" << top << ".txt subckt_" << top << ".sp script_" << top;  
 	copyarq << " simulate.sh verilogfile.v 143.54.10.45:~/Desktop/carac/carac_45nm/." << endl;
-	copyarq << "scp verilogfile.v 143.54.10.45:~/Desktop/sintese45nm/LIVC17_mapped.v" << endl;
+	copyarq << "scp verilogfile.v 143.54.10.45:~/Desktop/sintese45nm/" << top << "_mapped.v" << endl;
 	copyarq.close();
 	printSetupCarac(*c, simulate, copyarq, top); 
 	printScriptCarac(*c, top);
@@ -2135,12 +2136,13 @@ bool Size::printSetupCarac(Circuit& circuit, ofstream &simulate, ofstream &copya
 	
 	setup << "Index INV_X1 {" << endl;
 	setup << "\tslew = 0.007500N 0.018750N 0.037500N 0.075000N 0.150000N 0.300000N 0.600000N ;" << endl;
-	setup << "\tload = 0.000400P 0.000800P 0.001600P ;" << endl;
+	setup << "\tload = 0.000400P 0.000800P 0.001600P 0.003200P 0.006400P;" << endl;
 	setup << "} ;\n" << endl;
 	
 	for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
 		setup << "Index " <<  instances_it->second.subCircuit << "_" << instances_it->second.name << " {" << endl;
 		setup << "\tslew = 0.007500N 0.018750N 0.037500N 0.075000N 0.150000N 0.300000N 0.600000N ;" << endl;
+		double aux = instances_it->second.Cload/2;
 		setup << "\tload = 0.000400P " << instances_it->second.Cload << " " << instances_it->second.Cload*2 << " ;" << endl;
 		setup << "} ;\n" << endl;
 	}//end for
@@ -2470,10 +2472,10 @@ bool Size::fo4(Circuit *circuit) {
 	outFile << "// ASTRAN";
 	outFile << "\n\n";
 
-//module filename(input,output);
+	//module filename(input,output);
 
 	outFile << "module " << top << "(";   
-   for(int ind=0;ind<input.size();ind++){
+	for(int ind=0;ind<input.size();ind++){
 	  outFile << input[ind];
 	   if(ind == input.size() -1) { 
 		if(output.size()==0)
