@@ -387,6 +387,7 @@ void Size::printGP_Constants( GeometricProgram &gp, const string &technology, co
 	double Xmax = 15;
 	double Xn = 1;
 	double Xp = 1.6;
+	double Vdd = 3.3;
 
 	//values for 45nm technology
 	const double pnratio = 1.5;
@@ -401,6 +402,7 @@ void Size::printGP_Constants( GeometricProgram &gp, const string &technology, co
 	double Xmax_45 = 32;
 	double Xn_45 = 0.09;
 	double Xp_45 = 0.135;
+	double Vdd_45 = 1.1;
 
 	// Create variables.
 	// [TODO]
@@ -422,6 +424,8 @@ void Size::printGP_Constants( GeometricProgram &gp, const string &technology, co
 		gp.createConstant( "ReqN", Req_nmos );
 		gp.createConstant( "Xn", Xn );
 		gp.createConstant( "Xp", Xp );
+		gp.createConstant( "Vdd", Vdd );
+		gp.createConstant( "Vdd2", Vdd*Vdd );
 	} else if (technology == "45nm") {
 		gp.createConstant( "Xmax", Xmax_45 );
 		gp.createConstant( "Xmin", Xmin_45 );
@@ -433,6 +437,8 @@ void Size::printGP_Constants( GeometricProgram &gp, const string &technology, co
 		gp.createConstant( "ReqN", Req_nmos_45 );
 		gp.createConstant( "Xn", Xn_45 );
 		gp.createConstant( "Xp", Xp_45 );
+		gp.createConstant( "Vdd", Vdd_45 );
+		gp.createConstant( "Vdd2", Vdd_45*Vdd_45 );
 	} else {
 		throw string( "Invalid technology!" );
 	} // end else
@@ -756,10 +762,57 @@ void Size::printGP_CircuitArea( GeometricProgram &gp, Circuit * circuit ) {
 	Sum * circuitAreaFinal = gp.createSum( "Afinal" );
 	ConstantSum * circuitAreaBase = gp.createConstantSum( "Abase" );
 
-	 for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ) {
+	for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ) {
 		circuitAreaFinal->addTerm( gp.requestPosynomialType( "Afinal_" + it->first ) );
 		circuitAreaBase->addTerm( gp.requestConstantType( "Abase_" + it->first ) );
 	} // end for
+} // end method
+
+// -----------------------------------------------------------------------------
+
+void Size::printGP_CircuitPower( GeometricProgram &gp, Circuit * circuit ) {
+	CellNetlst * topNetlist = circuit->getTopNetlist();
+	map<string, Inst> &instances = topNetlist->getInstances();
+	
+	
+	Sum * capSum = gp.createSum();
+	
+	for ( map<string, Inst>::iterator it = instances.begin(); it != instances.end(); it++ ) {
+		Inst &inst = it->second;
+		
+		CellNetlst * netlist = circuit->getCellNetlst( inst.subCircuit );
+
+		vector<int> &ports = inst.ports;
+		for (int l=0; l<ports.size(); l++) {
+			t_net &net = topNetlist->getNet(ports[l]);
+			if ( net.name != circuit->getVddNet() && net.name != circuit->getGndNet() ) {
+				if (netlist->getIOType(l) == IOTYPE_INPUT){
+					const string id = "_" + inst.name + "_" + netlist->getInout(l);
+					capSum->addTerm( gp.requestPosynomialType("Cin" + id ) );
+				} // end if
+			} //  end if
+		} // end for
+	} // end for
+
+	// Cload
+	map<string, Interface> *interfaces = circuit->getInterfaces();
+
+	// Count the number of circuit outputs.
+	int counter = 0;
+	for ( map<string, Interface>::iterator it = interfaces->begin(); it != interfaces->end(); it++ ) {
+		if ( it->second.ioType == IOTYPE_OUTPUT )
+			counter++;
+	} // end for
+
+	capSum->addTerm( 
+		gp.createMul( gp.createConstant(counter), gp.requestConstantType("Cload") ) );
+		
+	// Write final power equation.
+	Mul * circuitPower = gp.createMul( "Power" );
+	
+	circuitPower->addTerm(capSum);
+	circuitPower->addTerm(gp.requestConstantType("Vdd2"));
+	circuitPower->addTerm(gp.createConstant(0.5));		
 } // end method
 
 // -----------------------------------------------------------------------------
@@ -804,6 +857,9 @@ void Size::printGP(Circuit * circuit, const string &target ) {
 		// Write area.
 		printGP_CircuitArea( gp, circuit );
 
+		// Write power.
+		printGP_CircuitPower( gp, circuit );
+
 		// Write objective and specific constraints.
 		if ( target == "delay" ) {
 			gp.setObjective( gp.requestPosynomialType( "delay" ) );
@@ -830,20 +886,33 @@ void Size::printGP(Circuit * circuit, const string &target ) {
 		// Output
 		ofstream file;
 		
-		file.open( "gp-generalized.m" );
+		file.open( "gp_standard.m" );
 		gp.print( file );
-		file.close();
+		//file.close();
 
 		StandardGeometricProgram sgp;
 		gp.ungeneralize();
 
-		file.open( "gp-ungeneralized.m" );
-		gp.print( file );
-		file.close();
+		//file.open( "gp_ungeneralized.m" );
+		//gp.print( file );
+		//file.close();
 
 		gp.standardize( sgp );
-		file.open( "gp-standard.m" );
+		//file.open( "gp_standard.m" );
 		sgp.print( file );
+		file << "assign(solution);" << endl;
+		file << "delay = eval (delay, solution);" << endl;
+		file << "Afinal = eval (Afinal, solution);" << endl; 
+		file << "Power = eval (Power, solution);" << endl; 
+		file << "save arq.txt ";
+		for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
+			file << instances_it->first << " ";
+		}//end for
+		file << " delay Afinal Power -ascii;" << endl;
+		file << endl;
+		file << "exit;" << endl;
+		file << "exit" << endl;
+		
 		file.close();
 
 	//} catch ( GeometricProgramException &e ) {
@@ -1470,15 +1539,15 @@ bool Size::gp(Circuit* c){
 
 	//transitorSizing(c,  c->getCellNetlst( c->getTopCell() ), file );
 	//return true;
-	double constrArea =  2.5;
-	double constrDelay = 1.13904e-11;
-	string technology = "45nm";
+	//double constrArea =  2.5;         //define todas as constraints na função
+	//double constrDelay = 1.13904e-11; //printGP
+	//string technology = "45nm";
 	string optimize = "delay";
 	string sizingType = "gate";
-	double Cload = 4*1.87367e-16;
-	double restrCin = 3;
+	//double Cload = 4*1.87367e-16;
+	//double restrCin = 3;
 	
-	ofstream file( "gp.m" );
+	//ofstream file( "gp.m" );
 
 	
 	ofstream script( "script.bat" );
@@ -1594,7 +1663,10 @@ bool Size::gp(Circuit* c){
     } // end for
 	
 	
-
+	printGP(c, optimize ); // area, delay
+	
+	
+	/*
 	file << "gpvar";
 	for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
 		file << " " << instances_it->first;
@@ -1682,12 +1754,13 @@ bool Size::gp(Circuit* c){
 	
 	//Print objective function
 	if (optimize == "power" || optimize == "area_delay"){
+	*/
 		//
 		// Clean-up;
 		//
 		for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++)
 			instances_it->second.instanceSized = false;	
-
+	/*
 		//
 		// Add last level instances to the queue (the ones which driver output
 		// nets).
@@ -1707,15 +1780,15 @@ bool Size::gp(Circuit* c){
 	file << "delay = max(" ;
 	if (optimize == "delay"){
 	
-		for (map<string,bool>::iterator outputs_it = outputs.begin(); outputs_it != outputs.end(); outputs_it++){
-				if (outputs_it->second == true){
-					cont ++;
-					if (cont > 1){
-						file <<  ", ";
-					}
-					file << outputs_it->first;
-				}//end if
-		}//end for
+	for (map<string,bool>::iterator outputs_it = outputs.begin(); outputs_it != outputs.end(); outputs_it++){
+		if (outputs_it->second == true){
+			cont ++;
+			if (cont > 1){
+				file <<  ", ";
+			}
+			file << outputs_it->first;
+		}//end if
+	}//end for
 	} //end if
 	
 	if ( optimize == "area" || optimize == "power" || optimize == "area_delay"){
@@ -1850,7 +1923,9 @@ bool Size::gp(Circuit* c){
 	}//end if
 	script.close();
 	file.close();
-
+	*/
+	script << "matlab -nodisplay -nosplash -nodesktop -wait -r gp_standard" << endl;
+	script.close();
 	//USING WINDOWS
 	//cout << "passou 1" << endl;
 	system("chmod 755 script.bat");
@@ -1924,6 +1999,8 @@ bool Size::gp(Circuit* c){
 			cin >> dou;
 			gateSize.push_back(dou);
 		} // end for
+		
+		
 		if (optimize == "area_delay"){
 			cin >> produto;
 			cin >> areaCircuit;

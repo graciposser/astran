@@ -197,6 +197,7 @@ Div * GeometricProgram::createDiv( const string &name, PosynomialType * numerato
 // -----------------------------------------------------------------------------
 
 void GeometricProgram::print( ostream &out ) const {
+	bool printConstraints = false;
 	// Print variables.
 	out << "gpvar";
 	for ( map<string,Variable*>::const_iterator it = clsVariables.begin(); it != clsVariables.end(); it++ )
@@ -221,32 +222,34 @@ void GeometricProgram::print( ostream &out ) const {
 	} // end for
 
 	out << "\n";
-
+	
+	
 	// Print constraints.
-	out << "constr = [";
+	if (printConstraints) {
+		out << "constr = [";
 
-	const int numConstraints = clsConstraints.size();
-	for ( int i = 0; i < numConstraints; i++ ) {
-		PosynomialType * posynomial = clsConstraints[i].first;
-		MonomialType * monomial = clsConstraints[i].second;
+		const int numConstraints = clsConstraints.size();
+		for ( int i = 0; i < numConstraints; i++ ) {
+			PosynomialType * posynomial = clsConstraints[i].first;
+			MonomialType * monomial = clsConstraints[i].second;
 
-		out << "\n\t";
-		posynomial->print(out);
-		out << " <= ";
-		monomial->print(out);
-		out << ";";
+			out << "\n\t";
+			posynomial->print(out);
+			out << " <= ";
+			monomial->print(out);
+			out << ";";
+		} // end if
+		out << "\n];\n\n";
+
+		// Print objective.
+		if ( clsObjective ) {
+			out << "[ result, solution, status ] = gpsolve( ";
+			clsObjective->print(out);
+			out << ", constr, 'min' )\n";
+		} else {
+			out << "[WARNING] Objective function was not set.\n";
+		} // end else
 	} // end if
-	out << "\n];\n\n";
-
-	// Print objective.
-	if ( clsObjective ) {
-		out << "[ result, solution, status ] = gpsolve( ";
-		clsObjective->print(out);
-		out << ", constr, 'min' )\n\n";
-	} else {
-		out << "[WARNING] Objective function was not set.\n";
-	} // end else
-
 	out << std::flush;
 } // end method
 
