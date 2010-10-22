@@ -374,10 +374,12 @@ void GeometricProgram::standardize( StandardGeometricProgram &gp ) {
 	} // end if
 } // end method
 
-// =============================================================================
-// Compute Value
-// =============================================================================
+// -----------------------------------------------------------------------------
 
+void GeometricProgram::assignValue( const string &variable, const double value ) {
+	Variable * var = requestVariable( variable );
+	var->setValue( value );
+} // end method
 
 // =============================================================================
 // Ungeneralize
@@ -465,10 +467,10 @@ void Posynomial::print( ostream &out, const bool unroll ) const {
 	if ( !unroll && hasName() ) {
 		out << getName();
 	} else {
-		for ( int i = 0; i < clsMonomials.size(); i++ ) {
+		for ( int i = 0; i < clsTerms.size(); i++ ) {
 			if ( i > 0 )
 				out << " + ";
-			clsMonomials[i]->print(out);
+			clsTerms[i]->print(out);
 		} // end for
 	} // end else
 } // end method
@@ -584,8 +586,8 @@ StandardPosynomial * MonomialType::toStandardPosynomial( StandardGeometricProgra
 
 StandardPosynomial * Posynomial::toStandardPosynomial( StandardGeometricProgram &gp ) const {
 	StandardPosynomial * posynomial = gp.createPosynomial();
-	for ( int i = 0; i < clsMonomials.size(); i++ )
-		posynomial->addTerm( clsMonomials[i]->toStandardMonomial( gp ) );
+	for ( int i = 0; i < clsTerms.size(); i++ )
+		posynomial->addTerm( clsTerms[i]->toStandardMonomial( gp ) );
 	return posynomial;
 } // end method
 
