@@ -738,13 +738,16 @@ void Size::printGP_CircuitDelay( GeometricProgram &gp, Circuit * circuit ) {
     for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
 		it->second.instanceSized = false;
 
-	// For each intance which drives a circuit output.
+	// For each output interface.
 	for ( map<string, Interface>::iterator it = interfaces->begin(); it != interfaces->end(); it++ ) {
 		if ( it->second.ioType != IOTYPE_OUTPUT )
 			continue;
 
 		t_net &net = topNetlist->getNet(it->first);
-		printGP_CircuitDelayWalker( gp, circuit, findDriver(circuit, circuit->getTopNetlist(), net ) );
+		
+		Inst * driver = findDriver(circuit, circuit->getTopNetlist(), net );
+		if ( driver )
+			printGP_CircuitDelayWalker( gp, circuit, driver );
 	} // end for
 
 
@@ -2000,7 +2003,7 @@ bool Size::gp(Circuit* c){
 			gateSize.push_back(dou);
 		} // end for
 		
-		
+		/*
 		if (optimize == "area_delay"){
 			cin >> produto;
 			cin >> areaCircuit;
@@ -2008,10 +2011,11 @@ bool Size::gp(Circuit* c){
 			cin >> powerCircuit;
 		} // end if
 		else{
+		*/
 			cin >> minDelay;
 			cin >> areaCircuit;
 			cin >> powerCircuit;
-		} // end if
+		//} // end if
 		
 		int cont = 0;
 		for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
@@ -2019,18 +2023,20 @@ bool Size::gp(Circuit* c){
 			cout << "M " << instances_it->first << " " << instances_it->second.m << endl;
 			cont++;
 		}//end for
-
+		
+		/*
 		if (optimize == "area"){ 
 			cout << "Area GP: " << minDelay << endl;
 			cout << "Delay do Circuito: " << areaCircuit << endl;
 			cout << "Potência do Circuito: " << powerCircuit << endl;
 		}// end if
-		if (optimize == "delay"){
+		*/
+		//if (optimize == "delay"){
 			cout << "Timing GP: " << minDelay << endl;
 			cout << "Area do Circuito: " << areaCircuit << endl;
 			cout << "Potência do Circuito: " << powerCircuit << endl;
-		} // end if
-		
+		//} // end if
+		/*
 		if (optimize == "power"){
 			cout << "Mínima Potência do Circuito: " << minDelay << endl;
 			cout << "Area do Circuito: " << areaCircuit << endl;
@@ -2043,12 +2049,12 @@ bool Size::gp(Circuit* c){
 			cout << "Timing GP: " << minDelay << endl;
 			cout << "Potência do Circuito: " << powerCircuit << endl;
 		} // end if
-
+		*/
 	}//end if
 	
 	watch.stop();
 
-	cerr << "Elapsed time: " << watch.getElapsedTime() << "s\n";
+	cout << "Elapsed time: " << watch.getElapsedTime() << "s\n";
 	
 	elmoredelay ed;
 	ed.elmoreFO4(c);
@@ -2084,13 +2090,13 @@ bool Size::gp(Circuit* c){
 	for (int i=0; i<(criticalSubCircuit.size()-1); i++){
 		//cout << criticalSubCircuit[i] << endl;
 		Inst instance = netlist->getInstance(criticalSubCircuit[i]);
-		printSpice(*c, instance, simulate, copyarq, top);
+		printSpiceSimulation(*c, instance, simulate, copyarq, top);
 	}
 	
 	copyarq << " simulate.sh 143.54.10.45:~/Desktop/spices45nm/." << endl;
 	
 	*/
-	
+		
 	subckt << ".SUBCKT INV_X1 A ZN VCC GND" << endl;
 	subckt << "M_I_0 ZN A GND GND NMOS_VTG L=0.05E-6 W=0.09E-6" << endl;
 	subckt << "M_I_7 ZN A VCC VCC PMOS_VTG L=0.05E-6 W=0.135E-6" << endl;
@@ -2211,16 +2217,30 @@ bool Size::printSetupCarac(Circuit& circuit, ofstream &simulate, ofstream &copya
 	setup << "\tresistance = 10K;" << endl; 
 	setup << "};\n" << endl;
 	
-	setup << "Index INV_X1 {" << endl;
-	setup << "\tslew = 0.007500N 0.018750N 0.037500N 0.075000N 0.150000N 0.300000N 0.600000N ;" << endl;
-	setup << "\tload = 0.000400P 0.000800P 0.001600P 0.003200P 0.006400P;" << endl;
-	setup << "} ;\n" << endl;
+	//setup << "Index INV_X1 {" << endl;
+	//setup << "\tslew = 0.007500N 0.018750N 0.037500N 0.075000N 0.150000N 0.300000N 0.600000N ;" << endl;
+	//setup << "\tload = 0.000400P 0.000800P 0.001600P 0.003200P 0.006400P;" << endl;
+	//setup << "} ;\n" << endl;
 	
 	for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
 		setup << "Index " <<  instances_it->second.subCircuit << "_" << instances_it->second.name << " {" << endl;
 		setup << "\tslew = 0.007500N 0.018750N 0.037500N 0.075000N 0.150000N 0.300000N 0.600000N ;" << endl;
-		double aux = instances_it->second.Cload/2;
-		setup << "\tload = 0.000400P " << instances_it->second.Cload << " " << instances_it->second.Cload*2 << " ;" << endl;
+		setup << "\tload = ";
+		if (instances_it->second.m <= 1.5)
+			setup << "0.000400P 0.000800P 0.001600P 0.003200P 0.006400P 0.012800P 0.025600P ;" << endl;
+		else if (instances_it->second.m <= 2.5 && instances_it->second.m > 1.5)
+			setup << "0.000400P 0.001600P 0.003200P 0.006400P 0.012800P 0.025600P 0.051200P ;" << endl;
+		else if (instances_it->second.m <= 3.5 && instances_it->second.m > 2.5)
+			setup << "0.000400P 0.002400P 0.004800P 0.009600P 0.019200P 0.038400P 0.076800P ;" << endl;
+		else if (instances_it->second.m <= 6 && instances_it->second.m > 3.5)
+			setup << "0.000400P 0.003200P 0.006400P 0.012800P 0.025600P 0.051200P 0.102400P ;" << endl;
+		else if (instances_it->second.m <= 12 && instances_it->second.m > 6)	
+			setup << "0.000400P 0.006400P 0.012800P 0.025600P 0.051200P 0.102400P 0.204800P ;" << endl;
+		else if (instances_it->second.m <= 24 && instances_it->second.m > 12)
+			setup << "0.000400P 0.012800P 0.025600P 0.051200P 0.102400P 0.204800P 0.409600P ;" << endl;
+		else if (instances_it->second.m > 24)
+			setup << "0.000400P 0.025600P 0.051200P 0.102400P 0.204800P 0.409600P 0.819200P;" << endl;
+				
 		setup << "} ;\n" << endl;
 	}//end for
 
