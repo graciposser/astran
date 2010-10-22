@@ -1,6 +1,8 @@
 #ifndef GEOMETRIC_PROGRAM_H
 #define GEOMETRIC_PROGRAM_H
 
+#include <cmath>
+
 #include <typeinfo>
 #include <exception>
 	using std::exception;
@@ -15,6 +17,11 @@
 #include <utility>
 	using std::pair;
 	using std::make_pair;
+#include <limits>
+	using std::numeric_limits;
+#include <algorithm>
+	using std::max;
+	using std::min;
 
 class Posynomial;
 class GeometricProgram;
@@ -160,6 +167,7 @@ public:
 	virtual void print( ostream &out, const bool unroll = false ) const = 0;
 	virtual StandardPosynomial * toStandardPosynomial( StandardGeometricProgram &gp ) const = 0;
 	virtual PosynomialType * ungeneralize( GeometricProgram &gp ) = 0;
+	virtual double computeValue() const = 0;
 
 }; // end class
 
@@ -194,7 +202,6 @@ public:
 	ConstantType( const string &name ) : MonomialType( name ) {
 	} // end constructor
 
-	virtual double computeValue() const = 0;
 	virtual StandardMonomial * toStandardMonomial( StandardGeometricProgram &gp ) const;
 };
 
@@ -272,14 +279,20 @@ public:
 class Variable : public MonomialType {
 friend class GeometricProgram; friend class StandardGeometricProgram;
 private:
+
+	double clsValue;
+
 	Variable( const string &name ) : MonomialType( name ) {
+		clsValue = 0;
 	} // end constructor
 
 public:
 
+	void setValue( const double value ) { clsValue = value; }
+
 	virtual void print( ostream &out, const bool unroll = false ) const;
 	virtual StandardMonomial * toStandardMonomial( StandardGeometricProgram &gp ) const;
-
+	virtual double computeValue() const { return clsValue; }
 }; // end class
 
 // -----------------------------------------------------------------------------
@@ -335,6 +348,15 @@ public:
 	virtual void print( ostream &out, const bool unroll = false ) const;
 	virtual StandardMonomial * toStandardMonomial( StandardGeometricProgram &gp ) const;
 
+	virtual double computeValue() const {
+		double value = clsCoefficient->computeValue();
+		for ( int i = 0; i < clsTerms.size(); i++ ) {
+			const Term &term = clsTerms[i];
+			value *= pow( term.propVariable->computeValue(), term.propExpoent );
+		} // end for
+		return value;
+	} // end for
+
 }; // end class
 
 // -----------------------------------------------------------------------------
@@ -342,7 +364,7 @@ public:
 class Posynomial : public PosynomialType {
 friend class GeometricProgram; friend class StandardGeometricProgram;
 private:
-	vector<Monomial *> clsMonomials;
+	vector<Monomial *> clsTerms;
 
 	Posynomial( const string &name ) : PosynomialType( name ) {
 	} // end constructor
@@ -350,12 +372,19 @@ private:
 public:
 
 	void addMonomial( Monomial * monomial ) {
-		clsMonomials.push_back(monomial);
+		clsTerms.push_back(monomial);
 	} // end method
 
 	virtual void print( ostream &out, const bool unroll = false ) const;
 	virtual StandardPosynomial * toStandardPosynomial( StandardGeometricProgram &gp ) const;
 	virtual PosynomialType * ungeneralize( GeometricProgram &gp ) { return this; }
+
+	virtual double computeValue() const {
+		double value = 0;
+		for ( int i = 0; i < clsTerms.size(); i++ )
+			value += clsTerms[i]->computeValue();
+		return value;
+	} // end for
 
 }; // end class
 
@@ -383,6 +412,13 @@ public:
 			clsTerms[i] = clsTerms[i]->ungeneralize(gp);
 		return this;
 	} // end method
+
+	virtual double computeValue() const {
+		double value = 0;
+		for ( int i = 0; i < clsTerms.size(); i++ )
+			value += clsTerms[i]->computeValue();
+		return value;
+	} // end for
 
 }; // end class
 
@@ -413,6 +449,12 @@ public:
 		return this;
 	} // end method
 
+	virtual double computeValue() const {
+		double value = 1;
+		for ( int i = 0; i < clsTerms.size(); i++ )
+			value *= clsTerms[i]->computeValue();
+		return value;
+	} // end for
 }; // end class
 
 // -----------------------------------------------------------------------------
@@ -444,6 +486,10 @@ public:
 		return this;
 	} // end method
 
+	virtual double computeValue() const {
+		return clsNumerator->computeValue() / clsDenominator->computeValue();
+	} // end for
+
 }; // end class
 
 // -----------------------------------------------------------------------------
@@ -464,6 +510,14 @@ public:
 	virtual void print( ostream &out, const bool unroll = false ) const;
 	virtual StandardPosynomial * toStandardPosynomial( StandardGeometricProgram &gp ) const;
 	virtual PosynomialType * ungeneralize( GeometricProgram &gp );
+
+	virtual double computeValue() const {
+		double value = -numeric_limits<double>::max();
+		for ( int i = 0; i < clsTerms.size(); i++ )
+			value = max( value, clsTerms[i]->computeValue() );
+		return value;
+	} // end for
+
 }; // end class
 
 // =============================================================================
@@ -669,6 +723,9 @@ public:
 
 	void addInequalityConstraint( PosynomialType * left, MonomialType * right );
 	void setObjective( PosynomialType * objective );
+
+	// Assign a value to a variable.
+	void assignValue( const string &variable, const double value );
 
 	// Replace any generalized posynomial by a normal posynomial. This may
 	// create new variables and constraints.
