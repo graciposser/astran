@@ -740,6 +740,9 @@ public:
 	// Prints in a human-readable way.
 	void print( ostream &out ) const;
 	
+	// Gets
+	const map<string,Variable*> &getVariableMap() const { return clsVariables; }
+	
 }; // end class
 
 #endif

@@ -830,88 +830,89 @@ void Size::printGP(Circuit * circuit, const string &target ) {
 	int counter;
 
 	//try {
-		// Create the geometric program.
-		GeometricProgram gp;
-
 		// Write problem variables.
 		for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
-			gp.createVariable( it->first );
+			clsGP.createVariable( it->first );
 
 		// Write constants.
-		printGP_Constants( gp, "45nm", 4*1.87367e-16, 2.5, 4.29113e-10, 3 ); //Cload, constrArea, constrDelay, constrCin
+		printGP_Constants( clsGP, "45nm", 4*1.87367e-16, 2.5, 4.29113e-10, 3 ); //Cload, constrArea, constrDelay, constrCin
 
 		// Write cins.
 		counter = 0;
 		for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
-			printGP_InstanceCin( gp, rcs[counter++], it->first );
+			printGP_InstanceCin( clsGP, rcs[counter++], it->first );
 
 		// Write cloads.
 		for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
-			printGP_InstanceCload( gp, circuit, it->first );
+			printGP_InstanceCload( clsGP, circuit, it->first );
 
 		// Write RC Trees of each instance.
 		counter = 0;
 		for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
-			printGP_Instance( gp, rcs[counter++], circuit, it->first );
+			printGP_Instance( clsGP, rcs[counter++], circuit, it->first );
 
 		// Write delay.
-		printGP_CircuitDelay( gp, circuit );
+		printGP_CircuitDelay( clsGP, circuit );
 
 		// Write area.
-		printGP_CircuitArea( gp, circuit );
+		printGP_CircuitArea( clsGP, circuit );
 
 		// Write power.
-		printGP_CircuitPower( gp, circuit );
+		printGP_CircuitPower( clsGP, circuit );
 
 		// Write objective and specific constraints.
 		if ( target == "delay" ) {
-			gp.setObjective( gp.requestPosynomialType( "delay" ) );
+			clsGP.setObjective( clsGP.requestPosynomialType( "delay" ) );
 
-			gp.addInequalityConstraint( gp.requestPosynomialType( "Afinal" ),
-				gp.createConstantMul( gp.requestConstantType( "constrArea" ), gp.requestConstantType( "Abase" ) ) );
+			clsGP.addInequalityConstraint( clsGP.requestPosynomialType( "Afinal" ),
+				clsGP.createConstantMul( clsGP.requestConstantType( "constrArea" ), clsGP.requestConstantType( "Abase" ) ) );
 		} else if ( target == "area" ) {
-			gp.setObjective( gp.requestPosynomialType( "Afinal" ) );
+			clsGP.setObjective( clsGP.requestPosynomialType( "Afinal" ) );
 
-			gp.addInequalityConstraint( gp.requestPosynomialType( "delay" ), gp.requestConstantType( "maxDelay" ) );
+			clsGP.addInequalityConstraint( clsGP.requestPosynomialType( "delay" ), clsGP.requestConstantType( "maxDelay" ) );
 		} else {
 			throw GeometricProgramException( "Invalid target minimization! Should be 'delay' or 'area'." );
 		} // end else
 
 		// Write instance size constraints.
 		for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ) {
-			gp.addInequalityConstraint( gp.requestConstantType( "Xmin" ), gp.requestVariable( it->first ) );
-			gp.addInequalityConstraint( gp.requestVariable( it->first ), gp.requestConstantType( "Xmax" ) );
+			clsGP.addInequalityConstraint( clsGP.requestConstantType( "Xmin" ), clsGP.requestVariable( it->first ) );
+			clsGP.addInequalityConstraint( clsGP.requestVariable( it->first ), clsGP.requestConstantType( "Xmax" ) );
 		} // end for
 				
 		// Write cins.
-		printGP_InstanceCinConstraints( gp, circuit );	
+		printGP_InstanceCinConstraints( clsGP, circuit );	
 
 		// Output
 		ofstream file;
 		
 		file.open( "gp_standard.m" );
-		gp.print( file );
+		clsGP.print( file );
 		//file.close();
 
 		StandardGeometricProgram sgp;
-		gp.ungeneralize();
+		clsGP.ungeneralize();
 
 		//file.open( "gp_ungeneralized.m" );
 		//gp.print( file );
 		//file.close();
 
-		gp.standardize( sgp );
+		clsGP.standardize( sgp );
 		//file.open( "gp_standard.m" );
 		sgp.print( file );
 		file << "assign(solution);" << endl;
-		file << "delay = eval (delay, solution);" << endl;
-		file << "Afinal = eval (Afinal, solution);" << endl; 
-		file << "Power = eval (Power, solution);" << endl; 
+		//file << "delay = eval (delay, solution);" << endl;
+		//file << "Afinal = eval (Afinal, solution);" << endl; 
+		//file << "Power = eval (Power, solution);" << endl; 
 		file << "save arq.txt ";
-		for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
+		
+		const map<string,Variable*> &vars = clsGP.getVariableMap();
+		for (map<string,Variable*>::const_iterator instances_it = vars.begin(); instances_it != vars.end(); instances_it++){
 			file << instances_it->first << " ";
-		}//end for
-		file << " delay Afinal Power -ascii;" << endl;
+		} // end for
+		
+		
+		file << " -ascii;" << endl;
 		file << endl;
 		file << "exit;" << endl;
 		file << "exit" << endl;
@@ -1998,10 +1999,29 @@ bool Size::gp(Circuit* c){
 		}
 */
 
-		for ( int i = 0; i < instances.size(); i++ ) {
+		const map<string,Variable*> &vars = clsGP.getVariableMap();
+		for (map<string,Variable*>::const_iterator instances_it = vars.begin(); instances_it != vars.end(); instances_it++){
 			cin >> dou;
 			gateSize.push_back(dou);
+			clsGP.assignValue(instances_it->first, dou);
+			
+			map<string,Inst>::iterator it = instances.find( instances_it->first );
+			if ( it != instances.end() ) {
+				// A var representa uma instancia.
+				it->second.m = dou;
+			
+			
+			} // end if
+			
 		} // end for
+		
+		
+		cout << "INFO =========================================================\n";
+		cout << "Delay: " << clsGP.requestPosynomialType("delay")->computeValue() << "\n";
+		cout << "Area.: " << clsGP.requestPosynomialType("Afinal")->computeValue() << "\n";
+		cout << "Power: " << clsGP.requestPosynomialType("Power")->computeValue() << "\n";		
+		cout << " ==============================================================\n";
+		
 		
 		/*
 		if (optimize == "area_delay"){
@@ -2012,9 +2032,9 @@ bool Size::gp(Circuit* c){
 		} // end if
 		else{
 		*/
-			cin >> minDelay;
-			cin >> areaCircuit;
-			cin >> powerCircuit;
+			//cin >> minDelay;
+			//cin >> areaCircuit;
+			//cin >> powerCircuit;
 		//} // end if
 		
 		int cont = 0;
@@ -2032,9 +2052,9 @@ bool Size::gp(Circuit* c){
 		}// end if
 		*/
 		//if (optimize == "delay"){
-			cout << "Timing GP: " << minDelay << endl;
-			cout << "Area do Circuito: " << areaCircuit << endl;
-			cout << "Potência do Circuito: " << powerCircuit << endl;
+			//cout << "Timing GP: " << minDelay << endl;
+			//cout << "Area do Circuito: " << areaCircuit << endl;
+			//cout << "Potência do Circuito: " << powerCircuit << endl;
 		//} // end if
 		/*
 		if (optimize == "power"){
@@ -2056,8 +2076,8 @@ bool Size::gp(Circuit* c){
 
 	cout << "Elapsed time: " << watch.getElapsedTime() << "s\n";
 	
-	elmoredelay ed;
-	ed.elmoreFO4(c);
+	//elmoredelay ed;
+	//ed.elmoreFO4(c);
 	
 	/*-------------------------------------*************************************
 	
@@ -2226,6 +2246,7 @@ bool Size::printSetupCarac(Circuit& circuit, ofstream &simulate, ofstream &copya
 		setup << "Index " <<  instances_it->second.subCircuit << "_" << instances_it->second.name << " {" << endl;
 		setup << "\tslew = 0.007500N 0.018750N 0.037500N 0.075000N 0.150000N 0.300000N 0.600000N ;" << endl;
 		setup << "\tload = ";
+		
 		if (instances_it->second.m <= 1.5)
 			setup << "0.000400P 0.000800P 0.001600P 0.003200P 0.006400P 0.012800P 0.025600P ;" << endl;
 		else if (instances_it->second.m <= 2.5 && instances_it->second.m > 1.5)

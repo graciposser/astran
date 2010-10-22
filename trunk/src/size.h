@@ -26,6 +26,8 @@ using namespace std;
     
 class Size{
 private:
+	GeometricProgram clsGP;
+	
 	void addInstances(queue<string> &instances, const t_net &net);
 	void printOutputGP();
 	void printRC( const RCTranslator &rc, string &D, const int cont, ofstream &file, double constrArea, string instanceName, int contInstance, string sizingType, double Cload, string technology);
