@@ -549,13 +549,13 @@ bool elmoredelay::elmoreFO4(Circuit* c){
     map<string, CellNetlst>::iterator cells_it;
 	for ( cells_it = c->getCellNetlsts()->begin(); cells_it != c->getCellNetlsts()->end(); cells_it++ ){ //for all netlist cells
 		//To set the same transistor size for all cells - it based in commercial library size 1 for 350nm
-		
+		/*
 		for(int x=0; x<cells_it->second.size(); x++){       // for all cell transistors
 			if(cells_it->second.getTrans(x).type==PMOS)     //Sizing different for P and N transistors
 				cells_it->second.getTrans(x).width = 1;
 			else
 				cells_it->second.getTrans(x).width = 1;
-		}
+		}*/
 		
 		//Calculate IO type for each pin
 		cells_it->second.calcIOs(c->getGndNet(), c->getVddNet());
@@ -599,8 +599,10 @@ bool elmoredelay::elmoreFO4(Circuit* c){
 		delayOld = delayCircuit;
     } // end for
 	
+	/*
 	for ( cells_it = c->getCellNetlsts()->begin(); cells_it != c->getCellNetlsts()->end(); cells_it++ ){ //for all netlist cells
 		//To set the same transistor size for all cells - it based in commercial library size 1 for 350nm
+		
 		for(int x=0; x<cells_it->second.size(); x++){       // for all cell transistors
 			if(cells_it->second.getTrans(x).type==PMOS)     //Sizing different for P and N transistors
 				cells_it->second.getTrans(x).width = 0.135;
@@ -608,7 +610,7 @@ bool elmoredelay::elmoreFO4(Circuit* c){
 				cells_it->second.getTrans(x).width = 0.09;
 		}
 	}
-
+	*/
 	for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
 		
 				
