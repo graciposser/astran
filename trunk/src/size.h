@@ -75,6 +75,7 @@ private:
 	class linev{
 		public: vector <string> parts;			
 	};
+	bool printCins(Circuit& circuit, string &top);
 
 	void SetupRCTranslators( Circuit * circuit, vector< RCTranslator > &rcs );
 	void SetupRCTranslator( Circuit * circuit, RCTranslator &rc, Inst &inst );

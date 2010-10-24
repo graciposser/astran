@@ -682,9 +682,10 @@ void CellNetlst::calculateInputCapacitances() {
     float cinTechnologyN = 1.3767e-15;
 	
 	//values for 45nm technology
-	float cinTechnologyP_45 = 6.5592E-17  * 1.5; //*1.5, pois é a relação P/N para a tecnologia 45n
-    float cinTechnologyN_45 = 8.8979E-17;
-	
+	//float cinTechnologyP_45 = 6.5592E-17  * 1.5; //*1.5, pois é a relação P/N para a tecnologia 45n
+    double cinTechnologyP_45 = 72.88E-17; //capacitancia do transistor P calculada considerando w=1um
+	//float cinTechnologyN_45 = 8.8979E-17;
+	double cinTechnologyN_45 = 98.8656E-17; //capacitancia do transistor N calculada considerando w=1um
 
     //cout << "\n\n\n";
     //cout << this->getName() << "\n";
@@ -710,7 +711,7 @@ void CellNetlst::calculateInputCapacitances() {
 		if (technology == "350nm")
 		    cins.push_back( make_pair( c, cinTechnologyP+cinTechnologyN ) );
 		else {
-			cins.push_back( make_pair( c, cinTechnologyP_45+cinTechnologyN_45 ) );
+			cins.push_back( make_pair( c, cinTechnologyP_45*cinP+cinTechnologyN_45*cinN ) );
 		}
 
 	} // end if
