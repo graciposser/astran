@@ -815,7 +815,8 @@ void Size::printGP_CircuitPower( GeometricProgram &gp, Circuit * circuit ) {
 	
 	circuitPower->addTerm(capSum);
 	circuitPower->addTerm(gp.requestConstantType("Vdd2"));
-	circuitPower->addTerm(gp.createConstant(0.5));		
+	circuitPower->addTerm(gp.createConstant(0.2));
+	circuitPower->addTerm(gp.createConstant(500000000));		
 } // end method
 
 // -----------------------------------------------------------------------------
@@ -887,7 +888,7 @@ void Size::printGP(Circuit * circuit, const string &target ) {
 		ofstream file;
 		
 		file.open( "gp_standard.m" );
-		clsGP.print( file );
+		//clsGP.print( file );
 		//file.close();
 
 		StandardGeometricProgram sgp;
@@ -1585,7 +1586,10 @@ bool Size::gp(Circuit* c){
     } // end if
     else
 	cout << "Top Cell: " << top << endl;
-
+	
+	elmoredelay ed;
+	ed.elmoreFO4(c);
+	
     CellNetlst *netlist = c->getCellNetlst( c->getTopCell() );
     map<string,Inst> &instances = netlist->getInstances();
 	//vector<Trans> &trans = netlist->getTransistors();
@@ -2018,6 +2022,7 @@ bool Size::gp(Circuit* c){
 		
 		cout << "INFO =========================================================\n";
 		cout << "Delay: " << clsGP.requestPosynomialType("delay")->computeValue() << "\n";
+		cout << "Area base: " << clsGP.requestPosynomialType("Abase")->computeValue() << "\n";
 		cout << "Area.: " << clsGP.requestPosynomialType("Afinal")->computeValue() << "\n";
 		cout << "Power: " << clsGP.requestPosynomialType("Power")->computeValue() << "\n";		
 		cout << " ==============================================================\n";
@@ -2117,10 +2122,10 @@ bool Size::gp(Circuit* c){
 	
 	*/
 		
-	subckt << ".SUBCKT INV_X1 A ZN VCC GND" << endl;
-	subckt << "M_I_0 ZN A GND GND NMOS_VTG L=0.05E-6 W=0.09E-6" << endl;
-	subckt << "M_I_7 ZN A VCC VCC PMOS_VTG L=0.05E-6 W=0.135E-6" << endl;
-	subckt << ".ENDS INV_X1" << endl << endl;
+	//subckt << ".SUBCKT INV_X1 A ZN VCC GND" << endl;
+	//subckt << "M_I_0 ZN A GND GND NMOS_VTG L=0.05E-6 W=0.09E-6" << endl;
+	//subckt << "M_I_7 ZN A VCC VCC PMOS_VTG L=0.05E-6 W=0.135E-6" << endl;
+	//subckt << ".ENDS INV_X1" << endl << endl;
 	
 	
 	for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
