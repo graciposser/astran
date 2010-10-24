@@ -42,12 +42,20 @@ double elmoredelay::calculateDelay(const RCTranslator &rc, double Xn, double Xp,
 
 	//values for 45nm
 	const double pnratio = 1.5;
-
-	double csbdb_pmos = 6.4541E-17 * pnratio;
-	double csbdb_nmos = 7.1513E-17;
-	double Req_pmos = 5.4987E+04 / pnratio;
-	double Req_nmos = 1.5586E+04;
 	
+	//double cgateP_45 = 6.5592E-17  * pnratio; //*1.5, pois � a rela��o P/N para a tecnologia 45n
+	double cgateP = 72.88E-17; //capacitancia do transistor P calculada considerando w=1um
+    //double cgateN_45 = 8.8979E-17;
+	double cgateN = 98.8656E-17; //capacitancia do transistor N calculada considerando w=1um
+	//double csbdb_pmos_45 = 6.4541E-17 * pnratio;
+	double csbdb_pmos = 71.7122E-17; //capacitancia do transistor P calculada considerando w=1um
+	//double csbdb_nmos_45 = 7.1513E-17;
+	double csbdb_nmos = 79.4589E-17; //capacitancia do transistor N calculada considerando w=1um
+	//double Req_pmos_45 = 5.4987E+04 / pnratio;
+	double Req_pmos = 4948.83; //resistencia do transistor P para w=1um
+	//double Req_nmos_45 = 1.5586E+04;
+	double Req_nmos = 1402.74; //resistencia do transistor N para w=1um
+
 	/*
 	double csbdb_pmos = 6.4541E-17;
 	double csbdb_nmos = 7.1513E-17;

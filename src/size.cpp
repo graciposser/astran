@@ -392,12 +392,18 @@ void Size::printGP_Constants( GeometricProgram &gp, const string &technology, co
 	//values for 45nm technology
 	const double pnratio = 1.5;
 
-	double cgateP_45 = 6.5592E-17  * pnratio; //*1.5, pois � a rela��o P/N para a tecnologia 45n
-    double cgateN_45 = 8.8979E-17;
-	double csbdb_pmos_45 = 6.4541E-17 * pnratio;
-	double csbdb_nmos_45 = 7.1513E-17;
-	double Req_pmos_45 = 5.4987E+04 / pnratio;
-	double Req_nmos_45 = 1.5586E+04;
+	//double cgateP_45 = 6.5592E-17  * pnratio; //*1.5, pois � a rela��o P/N para a tecnologia 45n
+	double cgateP_45 = 72.88E-17; //capacitancia do transistor P calculada considerando w=1um
+    //double cgateN_45 = 8.8979E-17;
+	double cgateN_45 = 98.8656E-17; //capacitancia do transistor N calculada considerando w=1um
+	//double csbdb_pmos_45 = 6.4541E-17 * pnratio;
+	double csbdb_pmos_45 = 71.7122E-17; //capacitancia do transistor P calculada considerando w=1um
+	//double csbdb_nmos_45 = 7.1513E-17;
+	double csbdb_nmos_45 = 79.4589E-17; //capacitancia do transistor N calculada considerando w=1um
+	//double Req_pmos_45 = 5.4987E+04 / pnratio;
+	double Req_pmos_45 = 4948.83; //resistencia do transistor P para w=1um
+	//double Req_nmos_45 = 1.5586E+04;
+	double Req_nmos_45 = 1402.74; //resistencia do transistor N para w=1um
 	double Xmin_45 = 1;
 	double Xmax_45 = 32;
 	double Xn_45 = 0.09;
@@ -456,13 +462,16 @@ void Size::printGP_InstanceHeader( GeometricProgram &gp, const RCTranslator &rc,
 
 	for ( int i=0; i<rc.getNumTransistors(); i++){
 		const string Rtrans = "Rtrans" + ToString(i) + "_" + instanceName;
-
+		double RTransP = 0;
+		double RTransN = 0;
 		switch ( rc.getTransistorType(i) ) {
 			case RCTranslator::PMOS:
-				gp.createMonomial( Rtrans, gp.requestConstantType("ReqP"), instvar, -1 );
+				RTransP = gp.requestConstantType ("ReqP")->computeValue() / rc.getTransistorWidth (i);
+				gp.createMonomial( Rtrans, gp.createConstant (RTransP), instvar, -1 );
 				break;
 			case RCTranslator::NMOS:
-				gp.createMonomial( Rtrans, gp.requestConstantType("ReqN"), instvar, -1 );
+				RTransN = gp.requestConstantType ("ReqN")->computeValue() / rc.getTransistorWidth (i);
+				gp.createMonomial( Rtrans, gp.createConstant (RTransN), instvar, -1 );
 				break;
 		} // end swtich
 	} // end for
@@ -470,32 +479,36 @@ void Size::printGP_InstanceHeader( GeometricProgram &gp, const RCTranslator &rc,
 	//===========Imprime a Capacitância de entrada de cada transistor=========
 	for ( int i=0; i<rc.getNumTransistors(); i++){
 		const string Ctrans = "Ctrans" + ToString(i) + "_" + instanceName;
+		double CTransP = 0;
+		double CTransN = 0;
 
 		switch ( rc.getTransistorType(i) ) {
 			case RCTranslator::PMOS:
-				gp.createMonomial( Ctrans, gp.requestConstantType("CsbP"), instvar );
+				CTransP = gp.requestConstantType ("CsbP")->computeValue() * rc.getTransistorWidth (i);
+				gp.createMonomial( Ctrans, gp.createConstant (CTransP), instvar );
 				break;
 			case RCTranslator::NMOS:
-				gp.createMonomial( Ctrans, gp.requestConstantType("CsbN"), instvar );
+				CTransN = gp.requestConstantType ("CsbN")->computeValue() * rc.getTransistorWidth (i);
+				gp.createMonomial( Ctrans, gp.createConstant (CTransN), instvar );
 				break;
 			} // end switch
 	} // end for
 
 	//===========Imprime a area e cin da instancia =========
-	int numPMOS = 0;
-	int numNMOS = 0;
+	double areaPMOS = 0;
+	double areaNMOS = 0;
 
 	for ( int i = 0; i < rc.getNumTransistors(); i++ ) {
 		switch(rc.getTransistorType(i)) {
-			case RCTranslator::PMOS: numPMOS++; break;
-			case RCTranslator::NMOS: numNMOS++; break;
+			case RCTranslator::PMOS: areaPMOS += rc.getTransistorWidth ( i ); break;
+			case RCTranslator::NMOS: areaNMOS += rc.getTransistorWidth ( i ); break;
 		} // end switch
 	} // end for
 
 	// Abase = Xn*numPMOS + Xp*numNMOS
 	ConstantSum * areaBase = gp.createConstantSum( "Abase_" + instanceName,
-		gp.createConstantMul( gp.requestConstantType("Xn"), gp.createConstant( numNMOS ) ),
-		gp.createConstantMul( gp.requestConstantType("Xp"), gp.createConstant( numPMOS ) ) );
+		gp.createConstant( areaNMOS ),
+		gp.createConstant( areaPMOS ) );
 
 	// Afinal = Abase * X_Instance
 	gp.createMul( "Afinal_" + instanceName, areaBase, instvar );
@@ -519,22 +532,28 @@ void Size::printGP_InstanceCin( GeometricProgram &gp, const RCTranslator &rc, co
 		const int nodeId = inputs[i];
 
 		int numPMOS = 0;
+		double widthPMOS = 0;
+		double totalWidthPMOS = 0;
 		int numNMOS = 0;
+		double widthNMOS = 0;
+		double totalWidthNMOS = 0;
 
 		const vector<int> &gates = rc.getTriggerTransistors(nodeId);
 		for ( int k = 0; k < gates.size(); k++ ) {
 			const int transId = gates[k];
 
 			switch ( rc.getTransistorType(transId) ) {
-				case RCTranslator::PMOS: numPMOS++; break;
-				case RCTranslator::NMOS: numNMOS++; break;
+				case RCTranslator::PMOS: numPMOS++; widthPMOS += rc.getTransistorWidth (transId); break;
+				case RCTranslator::NMOS: numNMOS++; widthNMOS += rc.getTransistorWidth (transId); break;
 			} // end swtich
-		} // end for
 
+		} // end for
+		totalWidthNMOS = numNMOS * widthNMOS;
+		totalWidthPMOS = numPMOS * widthPMOS;
 		// CinBase = CgateP*numPMOS + CgateN*numNMOS
 		ConstantSum * sumBase = gp.createConstantSum( "Cin_Base_" + instanceName + "_" + rc.getNodeName(nodeId),
-			gp.createConstantMul( gp.requestConstantType("CgateN"), gp.createConstant( numNMOS ) ),
-			gp.createConstantMul( gp.requestConstantType("CgateP"), gp.createConstant( numPMOS ) ) );
+			gp.createConstantMul( gp.requestConstantType("CgateN"), gp.createConstant( totalWidthNMOS ) ),
+			gp.createConstantMul( gp.requestConstantType("CgateP"), gp.createConstant( totalWidthPMOS ) ) );
 
 		// CinFinal = CinBase * Instance_Size
 		gp.createMul( "Cin_" + instanceName + "_" + rc.getNodeName(nodeId), sumBase, gp.requestVariable( instanceName ) );
@@ -888,7 +907,7 @@ void Size::printGP(Circuit * circuit, const string &target ) {
 		ofstream file;
 		
 		file.open( "gp_standard.m" );
-		//clsGP.print( file );
+		clsGP.print( file );
 		//file.close();
 
 		StandardGeometricProgram sgp;
@@ -1339,7 +1358,8 @@ bool Size::fanout4(Circuit* c){
 
     map<string, CellNetlst>::iterator cells_it;
     for ( cells_it = c->getCellNetlsts()->begin(); cells_it != c->getCellNetlsts()->end(); cells_it++ ){ //for all netlist cells
-
+	
+	/*
      //To set the same transistor size for all cells - it based in commercial library size 1 for 350nm
     for(int x=0; x<cells_it->second.size(); x++){       // for all cell transistors
         if(cells_it->second.getTrans(x).type==PMOS)     //Sizing different for P and N transistors
@@ -1347,7 +1367,7 @@ bool Size::fanout4(Circuit* c){
 		else
 			cells_it->second.getTrans(x).width = Xn;
 	}
-
+	*/
 
      //Calculate IO type for each pin
     cells_it->second.calcIOs(c->getGndNet(), c->getVddNet());
@@ -1611,10 +1631,12 @@ bool Size::gp(Circuit* c){
     for ( cells_it = c->getCellNetlsts()->begin(); cells_it != c->getCellNetlsts()->end(); cells_it++ ){ //for all netlist cells
 		//To set the same transistor size for all cells - it based in commercial library size 1 for 350nm
 		for(int x=0; x<cells_it->second.size(); x++){       // for all cell transistors
+			/*
 			if(cells_it->second.getTrans(x).type==PMOS)     //Sizing different for P and N transistors
 				cells_it->second.getTrans(x).width = 0.135;
 			else
 				cells_it->second.getTrans(x).width = 0.09;
+			*/
 			cells_it->second.getTrans(x).length = 0.05;
 			//cout << cells_it->second.getTrans(x).name << " " << " L=" << cells_it->second.getTrans(x).length << "U W=" << cells_it->second.getTrans(x).width << "U"<< endl;
 
@@ -2082,7 +2104,7 @@ bool Size::gp(Circuit* c){
 	cout << "Elapsed time: " << watch.getElapsedTime() << "s\n";
 	
 	//elmoredelay ed;
-	//ed.elmoreFO4(c);
+	ed.elmoreFO4(c);
 	
 	/*-------------------------------------*************************************
 	
@@ -2787,12 +2809,14 @@ bool Size::fo4(Circuit *circuit) {
     for ( cells_it = circuit->getCellNetlsts()->begin(); cells_it != circuit->getCellNetlsts()->end(); cells_it++ ){ //for all netlist cells
 
 		//To set the same transistor size for all cells - it based in commercial library size 1 for 350nm
+		/*
 		for(int x=0; x<cells_it->second.size(); x++){       // for all cell transistors
 			if(cells_it->second.getTrans(x).type==PMOS)     //Sizing different for P and N transistors
 				cells_it->second.getTrans(x).width = Xp;
 			else
 				cells_it->second.getTrans(x).width = Xn;
 		}
+		*/
 		//Calculate IO type for each pin
 		cells_it->second.calcIOs(circuit->getGndNet(), circuit->getVddNet());
 		//Calculate input capacitance of each cell
