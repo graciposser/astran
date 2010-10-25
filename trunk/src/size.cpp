@@ -393,11 +393,11 @@ void Size::printGP_Constants( GeometricProgram &gp, const string &technology, co
 	const double pnratio = 1.5;
 
 	//double cgateP_45 = 6.5592E-17  * pnratio; //*1.5, pois � a rela��o P/N para a tecnologia 45n
-	//double cgateP_45 = 72.88E-17; //capacitancia do transistor P calculada considerando w=1um
-    double cgateP_45 = 15.9431E-16;
+	double cgateP_45 = 72.88E-17; //capacitancia do transistor P calculada considerando w=1um
+    //double cgateP_45 = 15.9431E-16;
 	//double cgateN_45 = 8.8979E-17;
-	//double cgateN_45 = 98.8656E-17; //capacitancia do transistor N calculada considerando w=1um
-	double cgateN_45 = 15.9431E-16; //using liberty values
+	double cgateN_45 = 98.8656E-17; //capacitancia do transistor N calculada considerando w=1um
+	//double cgateN_45 = 15.9431E-16; //using liberty values
 	//double csbdb_pmos_45 = 6.4541E-17 * pnratio;
 	double csbdb_pmos_45 = 71.7122E-17; //capacitancia do transistor P calculada considerando w=1um
 	//double csbdb_nmos_45 = 7.1513E-17;
@@ -857,7 +857,7 @@ void Size::printGP(Circuit * circuit, const string &target ) {
 			clsGP.createVariable( it->first );
 
 		// Write constants.
-		printGP_Constants( clsGP, "45nm", 4*1.434879e-16, 3, 4.29113e-10, 2 ); //Cload, constrArea, constrDelay, constrCin
+		printGP_Constants( clsGP, "45nm", 4*1.434879e-16, 3.255, 4.29113e-10, 1.0001 ); //Cload, constrArea, constrDelay, constrCin
 
 		// Write cins.
 		counter = 0;
