@@ -463,7 +463,7 @@ bool elmoredelay::elmoreSame(Circuit* c){
 	for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
 		CloadInst = calculateCload(c, netlist, c->getCellNetlst( instances_it->second.subCircuit ), instances_it->second, Cload, outputs, instances_it->second.m, instances_it->first);
 		instances_it->second.Cload = CloadInst;
-		cout << "Cload " << instances_it->first << " = " << CloadInst << endl;
+		//cout << "Cload " << instances_it->first << " = " << CloadInst << endl;
 		//cout << "Delay ANTES: " << instances_it->first << " = " << instances_it->second.elmoreDelay << endl;
 		instances_it->second.elmoreDelay = createRC(c,  c->getCellNetlst( instances_it->second.subCircuit ), instances_it->first, instances_it->second.m, Xn, Xp, CloadInst, instances_it->second);
 		cout << "DELAY "<< instances_it->first << " = " << instances_it->second.elmoreDelay << endl;
@@ -582,7 +582,7 @@ bool elmoredelay::elmoreFO4(Circuit* c){
 	for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
 		CloadInst = calculateCload(c, netlist, c->getCellNetlst( instances_it->second.subCircuit ), instances_it->second, Cload, outputs, instances_it->second.m, instances_it->first);
 		instances_it->second.Cload = CloadInst;
-		cout << "Cload " << instances_it->first << " = " << CloadInst << endl;
+		//cout << "Cload " << instances_it->first << " = " << CloadInst << endl;
 		//cout << "Delay ANTES: " << instances_it->first << " = " << instances_it->second.elmoreDelay << endl;
 		//cout << instances_it->first << " = " << instances_it->second.m << endl;
 		instances_it->second.elmoreDelay = createRC(c,  c->getCellNetlst( instances_it->second.subCircuit ), instances_it->first, instances_it->second.m, Xn, Xp, CloadInst, instances_it->second);

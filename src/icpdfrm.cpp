@@ -304,7 +304,7 @@ void IcpdFrm::sizeFO4( wxCommandEvent& event ){
 }
 
 void IcpdFrm::elmoreDelay( wxCommandEvent& event ){
-	readCommand("elmore same");
+	readCommand("elmore fo4");
 	
 }
 
