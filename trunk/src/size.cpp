@@ -384,7 +384,7 @@ void Size::printGP_Constants( GeometricProgram &gp, const string &technology, co
 	double Req_pmos = 2.0717E+04;
 	double Req_nmos = 9.1691E+03;
 	double Xmin = 1;
-	double Xmax = 15;
+	double Xmax = 500;
 	double Xn = 1;
 	double Xp = 1.6;
 	double Vdd = 3.3;
@@ -393,9 +393,11 @@ void Size::printGP_Constants( GeometricProgram &gp, const string &technology, co
 	const double pnratio = 1.5;
 
 	//double cgateP_45 = 6.5592E-17  * pnratio; //*1.5, pois � a rela��o P/N para a tecnologia 45n
-	double cgateP_45 = 72.88E-17; //capacitancia do transistor P calculada considerando w=1um
-    //double cgateN_45 = 8.8979E-17;
-	double cgateN_45 = 98.8656E-17; //capacitancia do transistor N calculada considerando w=1um
+	//double cgateP_45 = 72.88E-17; //capacitancia do transistor P calculada considerando w=1um
+    double cgateP_45 = 15.9431E-16;
+	//double cgateN_45 = 8.8979E-17;
+	//double cgateN_45 = 98.8656E-17; //capacitancia do transistor N calculada considerando w=1um
+	double cgateN_45 = 15.9431E-16; //using liberty values
 	//double csbdb_pmos_45 = 6.4541E-17 * pnratio;
 	double csbdb_pmos_45 = 71.7122E-17; //capacitancia do transistor P calculada considerando w=1um
 	//double csbdb_nmos_45 = 7.1513E-17;
@@ -855,7 +857,7 @@ void Size::printGP(Circuit * circuit, const string &target ) {
 			clsGP.createVariable( it->first );
 
 		// Write constants.
-		printGP_Constants( clsGP, "45nm", 4*1.87367e-16, 2.5, 4.29113e-10, 3 ); //Cload, constrArea, constrDelay, constrCin
+		printGP_Constants( clsGP, "45nm", 4*1.434879e-16, 3, 4.29113e-10, 2 ); //Cload, constrArea, constrDelay, constrCin
 
 		// Write cins.
 		counter = 0;
@@ -885,7 +887,8 @@ void Size::printGP(Circuit * circuit, const string &target ) {
 			clsGP.setObjective( clsGP.requestPosynomialType( "delay" ) );
 
 			clsGP.addInequalityConstraint( clsGP.requestPosynomialType( "Afinal" ),
-				clsGP.createConstantMul( clsGP.requestConstantType( "constrArea" ), clsGP.requestConstantType( "Abase" ) ) );
+			//clsGP.createConstantMul( clsGP.requestConstantType( "constrArea" ), clsGP.requestConstantType( "Abase" ) ) );
+			clsGP.createConstantMul( clsGP.requestConstantType( "constrArea" ), clsGP.createConstant( 1 ) ) );
 		} else if ( target == "area" ) {
 			clsGP.setObjective( clsGP.requestPosynomialType( "Afinal" ) );
 
@@ -903,12 +906,23 @@ void Size::printGP(Circuit * circuit, const string &target ) {
 		// Write cins.
 		printGP_InstanceCinConstraints( clsGP, circuit );	
 
+		// Compute elmore delay.
+		for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
+			clsGP.assignValue(it->first, 1 );
+		
+		cout << "INFO - Before =================================================\n";
+		cout << "Delay: " << clsGP.requestPosynomialType("delay")->computeValue() << "\n";
+		cout << "Area base: " << clsGP.requestPosynomialType("Abase")->computeValue() << "\n";
+		cout << "Area.: " << clsGP.requestPosynomialType("Afinal")->computeValue() << "\n";
+		cout << "Power: " << clsGP.requestPosynomialType("Power")->computeValue() << "\n";		
+		cout << " ==============================================================\n";
+
 		// Output
 		ofstream file;
 		
-		file.open( "gp_standard.m" );
+		file.open( "gp_generalized.m" );
 		clsGP.print( file );
-		//file.close();
+		file.close();
 
 		StandardGeometricProgram sgp;
 		clsGP.ungeneralize();
@@ -918,7 +932,7 @@ void Size::printGP(Circuit * circuit, const string &target ) {
 		//file.close();
 
 		clsGP.standardize( sgp );
-		//file.open( "gp_standard.m" );
+		file.open( "gp_standard.m" );
 		sgp.print( file );
 		file << "assign(solution);" << endl;
 		//file << "delay = eval (delay, solution);" << endl;
@@ -1608,7 +1622,7 @@ bool Size::gp(Circuit* c){
 	cout << "Top Cell: " << top << endl;
 	
 	elmoredelay ed;
-	ed.elmoreFO4(c);
+	//ed.elmoreFO4(c);
 	
     CellNetlst *netlist = c->getCellNetlst( c->getTopCell() );
     map<string,Inst> &instances = netlist->getInstances();
@@ -2042,7 +2056,7 @@ bool Size::gp(Circuit* c){
 		} // end for
 		
 		
-		cout << "INFO =========================================================\n";
+		cout << "INFO - After ==================================================\n";
 		cout << "Delay: " << clsGP.requestPosynomialType("delay")->computeValue() << "\n";
 		cout << "Area base: " << clsGP.requestPosynomialType("Abase")->computeValue() << "\n";
 		cout << "Area.: " << clsGP.requestPosynomialType("Afinal")->computeValue() << "\n";
@@ -2104,7 +2118,7 @@ bool Size::gp(Circuit* c){
 	cout << "Elapsed time: " << watch.getElapsedTime() << "s\n";
 	
 	//elmoredelay ed;
-	ed.elmoreFO4(c);
+	//ed.elmoreFO4(c);
 	
 	/*-------------------------------------*************************************
 	

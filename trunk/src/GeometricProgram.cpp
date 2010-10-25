@@ -197,7 +197,7 @@ Div * GeometricProgram::createDiv( const string &name, PosynomialType * numerato
 // -----------------------------------------------------------------------------
 
 void GeometricProgram::print( ostream &out ) const {
-	bool printConstraints = false;
+	bool printConstraints = true;
 	// Print variables.
 	out << "gpvar";
 	for ( map<string,Variable*>::const_iterator it = clsVariables.begin(); it != clsVariables.end(); it++ )
