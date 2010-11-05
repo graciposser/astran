@@ -683,9 +683,9 @@ void CellNetlst::calculateInputCapacitances() {
 	
 	//values for 45nm technology
 	//float cinTechnologyP_45 = 6.5592E-17  * 1.5; //*1.5, pois é a relação P/N para a tecnologia 45n
-    double cinTechnologyP_45 = 72.88E-17; //using liberty values
+    double cinTechnologyP_45 = 72.88E-17; //using calculated values considerin transistor width = 1um
 	//float cinTechnologyN_45 = 8.8979E-17;
-	double cinTechnologyN_45 = 98.8656E-17; //using liberty values
+	double cinTechnologyN_45 = 98.8656E-17; //using calculated values considerin transistor width = 1um
 
     //cout << "\n\n\n";
     //cout << this->getName() << "\n";

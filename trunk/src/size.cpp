@@ -857,7 +857,7 @@ void Size::printGP(Circuit * circuit, const string &target ) {
 			clsGP.createVariable( it->first );
 
 		// Write constants.
-		printGP_Constants( clsGP, "45nm", 4*1.434879e-16, 3.255, 4.29113e-10, 1.0001 ); //Cload, constrArea, constrDelay, constrCin
+		printGP_Constants( clsGP, "45nm", 6*1.434879e-16, 2303.82, 4.29113e-10, 4 ); //Cload, constrArea, constrDelay, constrCin
 
 		// Write cins.
 		counter = 0;
