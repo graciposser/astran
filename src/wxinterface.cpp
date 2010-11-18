@@ -1,13 +1,11 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Apr 16 2008)
+// C++ code generated with wxFormBuilder (version Apr 15 2008)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
 ///////////////////////////////////////////////////////////////////////////
 
 #include "wxinterface.h"
-
-#include "images.h"
 
 ///////////////////////////////////////////////////////////////////////////
 
@@ -202,6 +200,7 @@ ICPD_frm::ICPD_frm( wxWindow* parent, wxWindowID id, const wxString& title, cons
 	config_circuit->SetBitmap( wxBitmap( wxT("../Images/view_cir.png"), wxBITMAP_TYPE_ANY ) );
 	#endif
 	menu_circuit->Append( config_circuit );
+	//config_circuit->Enable( false );
 	
 	wxMenuItem* view_rules;
 	view_rules = new wxMenuItem( menu_circuit, wxID_ANY, wxString( wxT("Rules...") ) , wxEmptyString, wxITEM_NORMAL );
@@ -1375,4 +1374,105 @@ Help_About::~Help_About()
 {
 	// Disconnect Events
 	this->Disconnect( wxEVT_CLOSE_WINDOW, wxCloseEventHandler( Help_About::hide ) );
+}
+
+View_PrintGP::View_PrintGP( wxWindow* parent, wxWindowID id, const wxString& title, const wxPoint& pos, const wxSize& size, long style ) : wxFrame( parent, id, title, pos, size, style )
+{
+	this->SetSizeHints( wxDefaultSize, wxDefaultSize );
+	
+	wxFlexGridSizer* fgSizer6;
+	fgSizer6 = new wxFlexGridSizer( 2, 2, 0, 0 );
+	fgSizer6->SetFlexibleDirection( wxBOTH );
+	fgSizer6->SetNonFlexibleGrowMode( wxFLEX_GROWMODE_SPECIFIED );
+	
+	static_design1 = new wxStaticText( this, wxID_ANY, wxT("Technology:"), wxDefaultPosition, wxDefaultSize, 0 );
+	static_design1->Wrap( -1 );
+	fgSizer6->Add( static_design1, 0, wxALL, 5 );
+	
+	wxString technology_choiceChoices[] = { wxT("45nm"), wxT("350nm") };
+	int technology_choiceNChoices = sizeof( technology_choiceChoices ) / sizeof( wxString );
+	technology_choice = new wxChoice( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, technology_choiceNChoices, technology_choiceChoices, 0 );
+	technology_choice->SetSelection( 0 );
+	fgSizer6->Add( technology_choice, 0, wxALL, 5 );
+	
+	
+	fgSizer6->Add( 0, 0, 1, wxEXPAND, 5 );
+	
+	
+	fgSizer6->Add( 0, 0, 1, wxEXPAND, 5 );
+	
+	static_design11 = new wxStaticText( this, wxID_ANY, wxT("Parameters:"), wxDefaultPosition, wxDefaultSize, 0 );
+	static_design11->Wrap( -1 );
+	fgSizer6->Add( static_design11, 0, wxALL, 5 );
+	
+	
+	fgSizer6->Add( 0, 0, 1, wxEXPAND, 5 );
+	
+	static_design112 = new wxStaticText( this, wxID_ANY, wxT("Cload:"), wxDefaultPosition, wxDefaultSize, 0 );
+	static_design112->Wrap( -1 );
+	fgSizer6->Add( static_design112, 0, wxALL, 5 );
+	
+	parameterCload = new wxTextCtrl( this, wxID_ANY, wxT("6*1.434879e-16"), wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer6->Add( parameterCload, 0, wxALL, 5 );
+	
+	static_design111 = new wxStaticText( this, wxID_ANY, wxT("Max Area:"), wxDefaultPosition, wxDefaultSize, 0 );
+	static_design111->Wrap( -1 );
+	fgSizer6->Add( static_design111, 0, wxALL, 5 );
+	
+	parameterMaxArea = new wxTextCtrl( this, wxID_ANY, wxT("2000"), wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer6->Add( parameterMaxArea, 0, wxALL, 5 );
+	
+	static_design1111 = new wxStaticText( this, wxID_ANY, wxT("Delay:"), wxDefaultPosition, wxDefaultSize, 0 );
+	static_design1111->Wrap( -1 );
+	fgSizer6->Add( static_design1111, 0, wxALL, 5 );
+	
+	parameterDelay = new wxTextCtrl( this, wxID_ANY, wxT("4.29113e-10"), wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer6->Add( parameterDelay, 0, wxALL, 5 );
+	
+	static_design11111 = new wxStaticText( this, wxID_ANY, wxT("Max Cin:"), wxDefaultPosition, wxDefaultSize, 0 );
+	static_design11111->Wrap( -1 );
+	fgSizer6->Add( static_design11111, 0, wxALL, 5 );
+	
+	parameterMaxCin = new wxTextCtrl( this, wxID_ANY, wxT("4"), wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer6->Add( parameterMaxCin, 0, wxALL, 5 );
+	
+	ok_button = new wxButton( this, wxID_ANY, wxT("&OK"), wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer6->Add( ok_button, 0, wxALL, 5 );
+	
+	cancel_button = new wxButton( this, wxID_ANY, wxT("&Cancel"), wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer6->Add( cancel_button, 0, wxALL, 5 );
+	
+	this->SetSizer( fgSizer6 );
+	this->Layout();
+	
+	// Connect Events
+	parameterCload->Connect( wxEVT_KEY_DOWN, wxKeyEventHandler( View_PrintGP::PressedKey ), NULL, this );
+	parameterCload->Connect( wxEVT_COMMAND_TEXT_ENTER, wxCommandEventHandler( View_PrintGP::applyButtonEvt ), NULL, this );
+	parameterMaxArea->Connect( wxEVT_KEY_DOWN, wxKeyEventHandler( View_PrintGP::PressedKey ), NULL, this );
+	parameterMaxArea->Connect( wxEVT_COMMAND_TEXT_ENTER, wxCommandEventHandler( View_PrintGP::applyButtonEvt ), NULL, this );
+	parameterDelay->Connect( wxEVT_KEY_DOWN, wxKeyEventHandler( View_PrintGP::PressedKey ), NULL, this );
+	parameterDelay->Connect( wxEVT_COMMAND_TEXT_ENTER, wxCommandEventHandler( View_PrintGP::applyButtonEvt ), NULL, this );
+	parameterMaxCin->Connect( wxEVT_KEY_DOWN, wxKeyEventHandler( View_PrintGP::PressedKey ), NULL, this );
+	parameterMaxCin->Connect( wxEVT_COMMAND_TEXT_ENTER, wxCommandEventHandler( View_PrintGP::applyButtonEvt ), NULL, this );
+	ok_button->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( View_PrintGP::okButtonEvt ), NULL, this );
+	ok_button->Connect( wxEVT_KEY_DOWN, wxKeyEventHandler( View_PrintGP::PressedKey ), NULL, this );
+	cancel_button->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( View_PrintGP::cancelButtonEvt ), NULL, this );
+	cancel_button->Connect( wxEVT_KEY_DOWN, wxKeyEventHandler( View_PrintGP::PressedKey ), NULL, this );
+}
+
+View_PrintGP::~View_PrintGP()
+{
+	// Disconnect Events
+	parameterCload->Disconnect( wxEVT_KEY_DOWN, wxKeyEventHandler( View_PrintGP::PressedKey ), NULL, this );
+	parameterCload->Disconnect( wxEVT_COMMAND_TEXT_ENTER, wxCommandEventHandler( View_PrintGP::applyButtonEvt ), NULL, this );
+	parameterMaxArea->Disconnect( wxEVT_KEY_DOWN, wxKeyEventHandler( View_PrintGP::PressedKey ), NULL, this );
+	parameterMaxArea->Disconnect( wxEVT_COMMAND_TEXT_ENTER, wxCommandEventHandler( View_PrintGP::applyButtonEvt ), NULL, this );
+	parameterDelay->Disconnect( wxEVT_KEY_DOWN, wxKeyEventHandler( View_PrintGP::PressedKey ), NULL, this );
+	parameterDelay->Disconnect( wxEVT_COMMAND_TEXT_ENTER, wxCommandEventHandler( View_PrintGP::applyButtonEvt ), NULL, this );
+	parameterMaxCin->Disconnect( wxEVT_KEY_DOWN, wxKeyEventHandler( View_PrintGP::PressedKey ), NULL, this );
+	parameterMaxCin->Disconnect( wxEVT_COMMAND_TEXT_ENTER, wxCommandEventHandler( View_PrintGP::applyButtonEvt ), NULL, this );
+	ok_button->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( View_PrintGP::okButtonEvt ), NULL, this );
+	ok_button->Disconnect( wxEVT_KEY_DOWN, wxKeyEventHandler( View_PrintGP::PressedKey ), NULL, this );
+	cancel_button->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( View_PrintGP::cancelButtonEvt ), NULL, this );
+	cancel_button->Disconnect( wxEVT_KEY_DOWN, wxKeyEventHandler( View_PrintGP::PressedKey ), NULL, this );
 }

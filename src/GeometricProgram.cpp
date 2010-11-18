@@ -386,6 +386,9 @@ void GeometricProgram::assignValue( const string &variable, const double value )
 // =============================================================================
 
 PosynomialType * Max::ungeneralize( GeometricProgram &gp ) {
+	if ( clsTerms.size() == 0 )
+		throw GeometricProgramException( "Max with no elements." );
+
 	for ( int i = 0; i < clsTerms.size(); i++ )
 		clsTerms[i] = clsTerms[i]->ungeneralize(gp);
 

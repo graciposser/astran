@@ -40,10 +40,28 @@ class Circuit {
 	float hGrid, vGrid, supplyHSize, supplyVSize;
 	string topCell,vddNet, gndNet;
 	CellNetlst *topNetlist;
-
-	public:
+	
+	//parameters to PrintGP
+	string  technology ; 
+	double Cload ,constrArea, constrDelay,constrCin;
+    
+    public:
 	Circuit();
 	~Circuit(){};
+	
+	//parameters to PrintGP
+	int gettechnology(){if(technology=="45nm") return 0;  else return 1;};
+	string gettechnologyname(){return technology;};
+	double getCload(){return Cload;};
+	double getconstrArea(){return constrArea;};
+	double getconstrDelay(){return constrDelay;};
+	double getconstrCin(){return constrCin;};
+	
+	void settechnology(string s){technology=s;};
+	void setCload(double n){ Cload=n;};
+	void setconstrArea(double n){ constrArea=n;};
+	void setconstrDelay(double n){constrDelay=n;};
+	void setconstrCin(double n){ constrCin=n;};
 
 	void clear();
 	void setTopCell(string cellName){topCell=cellName;topNetlist=getCellNetlst(topCell);};

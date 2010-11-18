@@ -767,6 +767,35 @@ int DesignMng::readCommand(string cmd){
 			case CELLGEN_COMPACT:
 				ret=autocell->compact(atoi(words[2].c_str()), atoi(words[3].c_str()), atoi(words[4].c_str()), atoi(words[5].c_str()), lpSolverFile);
 				break;
+				
+				/*
+				 SET_TECHNOLOGY
+				 */
+				
+				//printGP parameters SET
+			case SET_TECHNOLOGY:
+				circuit->settechnology(words[2].c_str());
+				ret=1;
+				break;	
+				
+			case SET_CLOAD:
+				circuit->setCload(atof(words[2].c_str()));
+				ret=1;
+				break;
+				
+			case SET_CONSTRAREA:
+				circuit->setconstrArea(atof(words[2].c_str()));
+				ret=1;
+				break;
+			case SET_CONSTRDELAY:
+				circuit->setconstrDelay(atof(words[2].c_str()));
+				ret=1;
+				break;
+			case SET_CONSTRCIN:
+				circuit->setconstrCin(atof(words[2].c_str()));
+				ret=1;
+				break;	
+				
 
 			case SIZE_FO4:{
 					Size s;
@@ -779,6 +808,9 @@ int DesignMng::readCommand(string cmd){
 					ret=s.gp(circuit);
 				}
 				break;
+							
+				
+				
 			
 			case ELMORE_SAME:{
 					elmoredelay e;
