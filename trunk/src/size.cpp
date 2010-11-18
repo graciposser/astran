@@ -3,6 +3,7 @@
  *  ICPD
  *
  *  Created by Adriel Mota Ziesemer Jr. on 5/18/10.
+ *	Implemented by Gracieli Posser, Guilherme Flach, Luiza S. P. Ramos and Jozeanne Belomo
  *  Copyright 2010 __MyCompanyName__. All rights reserved.
  *
  */
@@ -535,10 +536,10 @@ void Size::printGP_InstanceCin( GeometricProgram &gp, const RCTranslator &rc, co
 
 		int numPMOS = 0;
 		double widthPMOS = 0;
-		double totalWidthPMOS = 0;
+		//double totalWidthPMOS = 0;
 		int numNMOS = 0;
 		double widthNMOS = 0;
-		double totalWidthNMOS = 0;
+		//double totalWidthNMOS = 0;
 
 		const vector<int> &gates = rc.getTriggerTransistors(nodeId);
 		for ( int k = 0; k < gates.size(); k++ ) {
@@ -550,12 +551,12 @@ void Size::printGP_InstanceCin( GeometricProgram &gp, const RCTranslator &rc, co
 			} // end swtich
 
 		} // end for
-		totalWidthNMOS = numNMOS * widthNMOS;
-		totalWidthPMOS = numPMOS * widthPMOS;
+		//totalWidthNMOS = numNMOS * widthNMOS;
+		//totalWidthPMOS = numPMOS * widthPMOS;
 		// CinBase = CgateP*numPMOS + CgateN*numNMOS
 		ConstantSum * sumBase = gp.createConstantSum( "Cin_Base_" + instanceName + "_" + rc.getNodeName(nodeId),
-			gp.createConstantMul( gp.requestConstantType("CgateN"), gp.createConstant( totalWidthNMOS ) ),
-			gp.createConstantMul( gp.requestConstantType("CgateP"), gp.createConstant( totalWidthPMOS ) ) );
+			gp.createConstantMul( gp.requestConstantType("CgateN"), gp.createConstant( widthNMOS ) ),
+			gp.createConstantMul( gp.requestConstantType("CgateP"), gp.createConstant( widthPMOS ) ) );
 
 		// CinFinal = CinBase * Instance_Size
 		gp.createMul( "Cin_" + instanceName + "_" + rc.getNodeName(nodeId), sumBase, gp.requestVariable( instanceName ) );
@@ -736,12 +737,15 @@ void Size::printGP_CircuitDelayWalker( GeometricProgram &gp, Circuit * circuit, 
 
 		if ( drivers.size() > 0 ) {
 			Max * inputDelay = gp.createMax();
-			for ( int i = 0; i < drivers.size(); i++ )
+			for ( int i = 0; i < drivers.size(); i++ ){
 				inputDelay->addTerm( gp.requestPosynomialType( "D_" + drivers[i]->name ) );
-
+				//cout << "Driver: " << drivers[i]->name << " " << drivers[i]->subCircuit << endl;
+			}
 			gp.createSum( "D_" + inst->name, gp.requestPosynomialType( "delay" + inst->name ), inputDelay );
+			//cout << "Sum: " << "D_" << inst->name << " = " << "delay" << inst->name << " + " << inputDelay << endl;
 		} else {
 			gp.createSum( "D_" + inst->name )->addTerm( gp.requestPosynomialType( "delay" + inst->name ) );
+			//cout << "Sum2: " << "D_" << inst->name << " = " << "delay" << inst->name << endl;
 		} // end else
 
 		inst->instanceSized = true;
@@ -773,8 +777,12 @@ void Size::printGP_CircuitDelay( GeometricProgram &gp, Circuit * circuit ) {
 
 
 	Max * circuitDelay = gp.createMax( "delay" );
-	for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
+	//cout << "delay = max( ";
+	for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ){
 		circuitDelay->addTerm( gp.requestPosynomialType( "D_" + it->first ) );
+		//cout << "D_" + it->first;
+	}
+	//cout << ");" << endl;
 } // end method
 
 // -----------------------------------------------------------------------------
@@ -849,16 +857,24 @@ void Size::printGP(Circuit * circuit, const string &target ) {
 	vector< RCTranslator > rcs;
 	SetupRCTranslators( circuit, rcs );
 
+	string technology = circuit->gettechnologyname();
+	double Cload = circuit->getCload(); 
+	double constrArea = circuit->getconstrArea(); 
+	double constrDelay = circuit->getconstrDelay();
+	double constrCin = circuit->getconstrCin();
+	
 	int counter;
 
 	//try {
 		// Write problem variables.
 		for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
 			clsGP.createVariable( it->first );
+        
+	    // Write constants.
+		//printGP_Constants( clsGP, "45nm", 8.609274e-16, 2303.82, 4.29113e-10, 4 ); //Cload ( 6*1.434879e-16), constrArea, constrDelay, constrCin
+		printGP_Constants( clsGP, technology, Cload, constrArea, constrDelay, constrCin ); //Cload, constrArea, constrDelay, constrCin
 
-		// Write constants.
-		printGP_Constants( clsGP, "45nm", 6*1.434879e-16, 2303.82, 4.29113e-10, 4 ); //Cload, constrArea, constrDelay, constrCin
-
+        
 		// Write cins.
 		counter = 0;
 		for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
@@ -927,9 +943,9 @@ void Size::printGP(Circuit * circuit, const string &target ) {
 		StandardGeometricProgram sgp;
 		clsGP.ungeneralize();
 
-		//file.open( "gp_ungeneralized.m" );
-		//gp.print( file );
-		//file.close();
+		file.open( "gp_ungeneralized.m" );
+		clsGP.print( file );
+		file.close();
 
 		clsGP.standardize( sgp );
 		file.open( "gp_standard.m" );

@@ -8,6 +8,7 @@
 	using std::exception;
 #include <iostream>
 	using std::ostream;
+	using std::cout;
 #include <string>
 	using std::string;
 #include <vector>

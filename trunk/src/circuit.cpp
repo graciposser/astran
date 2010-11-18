@@ -17,6 +17,14 @@ Circuit::Circuit(){
 	c2lMargin=c2rMargin=c2tMargin=c2bMargin=0;
 	topCell="";
 	topNetlist =NULL;
+	
+	//parameters to PrintGP
+	technology ="45nm"; 
+	Cload = 6*1.434879e-16;
+	constrArea= 2000;
+	constrDelay= 4.29113e-10;
+	constrCin = 4;
+	
 }
 
 bool Circuit::setMargins(float l, float r, float t, float b){

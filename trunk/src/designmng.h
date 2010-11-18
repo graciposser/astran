@@ -80,6 +80,10 @@ enum command_name {
 	// Size - 2
 	SIZE_FO4,SIZE_GP,
 	
+	//Parameters PrintGP
+	SET_TECHNOLOGY, 
+    SET_CLOAD, SET_CONSTRAREA, SET_CONSTRDELAY, SET_CONSTRCIN, 
+	
 	// Elmore - 2
 	ELMORE_SAME,ELMORE_FO4,
 	
@@ -201,6 +205,15 @@ static commands commands_lst[] = {
 	// Size - 2
 	{"SIZE FO4", "Size the circuit using the FO4 algorithm"},
 	{"SIZE GP", "Size the circuit using the GP algorithm"},
+
+    //PrintGP parameters
+
+	{"SET TECHNOLOGY <int_Value>","Sets a new value to the circuit's technology"},
+    {"SET CLOAD <int_Value>","Sets a new value to the circuit's Cload"},
+    {"SET CONSTRAREA <int_Value>","Sets a new value to the circuit's constrArea"},
+    {"SET CONSTRDELAY <int_Value>","Sets a new value to the circuit's constrDelay"},
+    {"SET CONSTRCIN <int_Value>", "Sets a new value to the circuit's constrCin"},
+  
 	
 	// Elmore - 2
 	{"ELMORE SAME", "Calculate de delay of the circuit using the Elmore Delay method considering the minimum size for all cells"},

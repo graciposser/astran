@@ -20,6 +20,7 @@ IcpdFrm::IcpdFrm( wxWindow* parent ):ICPD_frm( parent ){
 	wxcircuit = new WxCircuit(this);
 	wxfp = new WxFP(this);
 	wxpreferences = new WxPreferences(this);
+	wxprintgp = new WxPrintGP(this);
 	refresh();
 
 	#ifdef __WXMSW__
@@ -309,7 +310,8 @@ void IcpdFrm::elmoreDelay( wxCommandEvent& event ){
 }
 
 void IcpdFrm::sizeGP( wxCommandEvent& event ){
-	readCommand("size gp");
+	//readCommand("size gp");
+	wxprintgp->Show();
 }
 
 // Cells
@@ -506,6 +508,7 @@ void IcpdFrm::refresh(){
 	wxrules->refresh();
 	wxfp->refresh();
 	wxpreferences->refresh();
+	wxprintgp->refresh();
 }
 
 void IcpdFrm::refreshInstanceList(){
