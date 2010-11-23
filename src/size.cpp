@@ -2193,11 +2193,209 @@ bool Size::gp(Circuit* c){
 	
 	copyarq << "scp setup_" << top << ".txt subckt_" << top << ".sp script_" << top;  
 	copyarq << " simulate.sh verilogfile.v 143.54.10.45:~/Desktop/carac/carac_45nm/." << endl;
-	copyarq << "scp verilogfile.v 143.54.10.45:~/Desktop/sintese45nm/" << top << "_mapped.v" << endl;
+	copyarq << "scp " << top << ".v " << "143.54.10.45:~/Desktop/sintese45nm/" << top << "_mapped.v" << endl;
 	copyarq.close();
 	printSetupCarac(*c, simulate, copyarq, top); 
 	printScriptCarac(*c, top);
 	
+	//==================================#####===================================
+	//=																		   =
+	//==================================#####===================================
+		//Spice to VERILOG - Jozeanne
+	
+	ofstream outFile;
+	string nomearq = top + ".v";
+	outFile.open(nomearq.c_str()); //abre arquivo para escrita ou cria um novo
+	
+	//ofstream outFile( top + ".v");//abre arquivo para escrita ou cria um novo
+       
+	//string top = circuit->getTopCell();
+	//cout<< top <<"\n";
+	//CellNetlst *netlist = circuit->getCellNetlst( circuit->getTopCell() );
+
+	cout << "  Criando arquivo verilog a partir do Top Cell..";
+	 
+	vector <string> input;
+	vector <string> output;
+	//pega as interfaces do arquivo .sp e escreve no arquivo .v como input e output
+	//map<string, Interface> *interfaces = circuit->getInterfaces();
+	map<string, Interface>::iterator interfaces_it;
+	for ( interfaces_it = interfaces->begin(); interfaces_it != interfaces->end(); interfaces_it++ ) {      
+		if ( interfaces_it->second.ioType == IOTYPE_INPUT ){
+			//cout <<  "INPUT: "  << interfaces_it->first << "\n";
+			input.push_back(interfaces_it->first);
+		}
+		if ( interfaces_it->second.ioType == IOTYPE_OUTPUT ){
+			//cout <<  "OUTPUT: " << interfaces_it->first << "\n";
+			output.push_back(interfaces_it->first);
+		}  
+	}//end for
+   
+	outFile << "\n";
+	outFile << "// ASTRAN";
+	outFile << "\n\n";
+
+	//module filename(input,output);
+
+	outFile << "module " << top << "(";   
+	for(int ind=0;ind<input.size();ind++){
+	  outFile << input[ind];
+	   if(ind == input.size() -1) { 
+		if(output.size()==0)
+		  outFile << ");";
+	   }  
+	  else
+		outFile << ", ";
+   }
+  if(input.size()!=0)
+	  outFile << ", ";
+	 
+  for(int ind=0;ind<output.size();ind++){
+	outFile << output[ind];
+	if(ind == output.size() -1)  
+		outFile << ");";
+	else
+		outFile << ", ";
+  }  
+	outFile << "\n";
+
+
+	outFile << "  input ";
+	for(int ind=0;ind<input.size();ind++){
+		outFile << input[ind];
+		if(ind == input.size() -1)  
+			outFile << ";";
+		else
+			outFile << ", ";
+	}  
+	outFile << "\n";
+   
+	outFile << "  output ";
+	for(int ind=0;ind<output.size();ind++){
+		outFile << output[ind];
+		if(ind == output.size() -1)  
+			outFile << ";";
+		else
+			outFile << ", ";
+	}  
+	outFile << "\n";
+  
+   //wire input
+   outFile << "  wire ";
+   for(int ind=0;ind<input.size();ind++){
+	 outFile << input[ind];
+	 if(ind == input.size() -1)  
+		outFile << ";";
+	 else
+		outFile << ", ";
+   }  
+   outFile << "\n";
+	///
+   //wire output   
+   outFile << "  wire ";
+   for(int ind=0;ind<output.size();ind++){
+	  outFile << output[ind];
+	  if(ind == output.size() -1)  
+		 outFile << ";";
+	  else
+		 outFile << ", ";
+   }  
+   outFile << "\n";
+
+	//wire nets que nao sao nem input nem output   
+	vector <string> netsv;
+	//map<string,Inst> &instances = netlist->getInstances();
+	for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ) {
+			   
+		for(vector<int>::iterator tmp2=it->second.ports.begin(); tmp2!=it->second.ports.end(); ++tmp2){
+			string & net = netlist->getNetName(*tmp2) ;
+			int same=0; //se same=1 tem esse net no input ou no output ou ja foi colocado no vetor
+		   
+			for(int ind=0;ind<input.size();ind++)
+				if(net == input[ind])
+					same=1;
+			for(int ind=0;ind<output.size();ind++)
+				if(net == output[ind])
+					same=1;
+			if(netsv.size()!=0)
+				for(int ind=0;ind<netsv.size();ind++)
+					if(net == netsv[ind])
+						same=1;
+		   
+			if(same != 1)
+			   netsv.push_back(netlist->getNetName(*tmp2));
+		}   
+		//  c++
+	}//fim for
+
+
+	//wire nets (8 nets por linha)
+	int counter=0;
+	for(int ind=0;ind<netsv.size();ind++){
+		if(counter == 0)
+			outFile << "  wire ";
+		if(netsv[ind] != "VCC" && netsv[ind] != "GND" ){
+			if(counter > 0)
+				outFile << ", ";
+			outFile << netsv[ind] ;   
+			counter++;
+		}
+		if(counter == 8 || ind == netsv.size()-1){
+			outFile << ";\n";
+			counter =0;
+		}
+	}
+   
+	//  OAI211_X2 g3893(.A (n_603), .B (n_906), .C1 (n_1057), .C2 (n_516),.ZN (G551));     
+	vector <linev> linesv;
+	//map<string,Inst> &instances = netlist->getInstances();
+	for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ) {
+		linev onelinev;
+		onelinev.parts.push_back(it->second.subCircuit);
+		onelinev.parts.push_back(it->first);
+		//outFile << "  " << it->second.subCircuit << " " << it->first ;
+		//outFile << "(";
+	   
+		for(vector<int>::iterator tmp2=it->second.ports.begin(); tmp2!=it->second.ports.end(); ++tmp2)//{
+			onelinev.parts.push_back(netlist->getNetName(*tmp2));
+		//string & net = netlist->getNetName(*tmp2) ;
+		linesv.push_back(onelinev);
+		//  c++
+	}//fim for
+   
+	vector <linev> compl_linesv;
+	for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ) {
+		CellNetlst *netlist2 = c->getCellNetlst( it->second.subCircuit);
+		vector<int> &inouts = netlist2->getInouts();    
+		vector<t_net> &nets= netlist2->getNets();  
+		linev onelinev;
+		onelinev.parts.push_back(it->second.subCircuit);
+		onelinev.parts.push_back(it->first);
+		//cout << it->first << it->second.subCircuit <<" Ports: ";
+		for(int c=0; c<inouts.size(); c++){
+			onelinev.parts.push_back(nets[inouts[c]].name);
+		}
+		compl_linesv.push_back(onelinev);
+	}//end for
+   
+	for(int ind=0;ind<linesv.size();ind++){
+		outFile<< "  " <<linesv[ind].parts[0] << "_" << linesv[ind].parts[1] << " " << linesv[ind].parts[1] <<"(";
+		for(int ind_in=2;ind_in<linesv[ind].parts.size();ind_in++){
+			if(linesv[ind].parts[ind_in] != "VCC" && linesv[ind].parts[ind_in]!= "GNC"){
+				outFile << "."  <<compl_linesv[ind].parts[ind_in] << " (" <<linesv[ind].parts[ind_in] << ")";
+				if(linesv[ind].parts[ind_in+1] != "VCC" && linesv[ind].parts[ind_in+1]!= "GNC")
+					outFile << ", ";
+				else
+					outFile << ");";
+			}
+			else
+				ind_in=linesv[ind].parts.size();
+		}  
+		outFile << "\n";  
+	}
+	outFile << "endmodule" << endl;
+	outFile.close();
+
     return true;
 }
 
