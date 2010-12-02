@@ -73,7 +73,7 @@ void Size::printRC( const RCTranslator &rc, string &D, const int cont, ofstream 
 	double csbdb_pmos = 2.2087E-15;
 	double csbdb_nmos = 2.4025E-15;
 	double Req_pmos = 2.0717E+04;
-	double Req_nmos = 9.1691E+03;
+	double Req_nmos = 8121; //tinha esse valor antes, não sei da onde ele saiu 9.1691E+03;
 	double Xmin = 1;
 	double Xmax = 15;
 	double Xn = 1;
@@ -383,7 +383,7 @@ void Size::printGP_Constants( GeometricProgram &gp, const string &technology, co
 	double csbdb_pmos = 2.2087E-15;
 	double csbdb_nmos = 2.4025E-15;
 	double Req_pmos = 2.0717E+04;
-	double Req_nmos = 9.1691E+03;
+	double Req_nmos = 8121; //tinha esse valor antes, não sei da onde ele saiu 9.1691E+03;
 	double Xmin = 1;
 	double Xmax = 500;
 	double Xn = 1;
