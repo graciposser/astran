@@ -678,7 +678,7 @@ void CellNetlst::calculateInputCapacitances() {
 	double cinP = 0;
 	string technology = "45nm";
     //values for 350nm technology
-	float cinTechnologyP = 5.2219E-16 * 1.6; //*1.6, pois È a relaÁ„o P/N para a tecnologia 350n 
+	float cinTechnologyP = 5.2219E-16; //faz *1.6, se quiser dar a relação P/N para a tecnologia 350n  
     float cinTechnologyN = 1.3767e-15;
 	
 	//values for 45nm technology
@@ -709,7 +709,7 @@ void CellNetlst::calculateInputCapacitances() {
 		    continue;
 	    } // end for
 		if (technology == "350nm")
-		    cins.push_back( make_pair( c, cinTechnologyP+cinTechnologyN ) );
+		    cins.push_back( make_pair( c, cinTechnologyP*cinP+cinTechnologyN*cinN ) );
 		else {
 			cins.push_back( make_pair( c, cinTechnologyP_45*cinP+cinTechnologyN_45*cinN ) );
 		}
