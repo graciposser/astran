@@ -378,14 +378,14 @@ void Size::printRC( const RCTranslator &rc, string &D, const int cont, ofstream 
 
 void Size::printGP_Constants( GeometricProgram &gp, const string &technology, const double parameterCload, const double parameterMaxArea, const double parameterDelay, const double parameterMaxCin ) {
 	//values for 350nm technology
-	double cgateP = 5.2219E-16 * 1.6; //*1.6, pois � a rela��o P/N para a tecnologia 350n
+	double cgateP = 5.2219E-16; // faz *1.6, pois � a rela��o P/N para a tecnologia 350n
     double cgateN = 1.3767e-15;
 	double csbdb_pmos = 2.2087E-15;
 	double csbdb_nmos = 2.4025E-15;
 	double Req_pmos = 2.0717E+04;
 	double Req_nmos = 8121; //tinha esse valor antes, não sei da onde ele saiu 9.1691E+03;
 	double Xmin = 1;
-	double Xmax = 500;
+	double Xmax = 32;
 	double Xn = 1;
 	double Xp = 1.6;
 	double Vdd = 3.3;
@@ -1598,7 +1598,7 @@ bool Size::gp(Circuit* c){
 	//double constrDelay = 1.13904e-11; //printGP
 	//string technology = "45nm";
 	string optimize = "delay";
-	string sizingType = "gate";
+	string sizingType = "gate"; //gate or transistor
 	//double Cload = 4*1.87367e-16;
 	//double restrCin = 3;
 	
@@ -2192,8 +2192,8 @@ bool Size::gp(Circuit* c){
 	simulate.close();
 	
 	copyarq << "scp setup_" << top << ".txt subckt_" << top << ".sp script_" << top;  
-	copyarq << " simulate.sh verilogfile.v 143.54.10.45:~/Desktop/carac/carac_45nm/." << endl;
-	copyarq << "scp " << top << ".v " << "143.54.10.45:~/Desktop/sintese45nm/" << top << "_mapped.v" << endl;
+	copyarq << " simulate.sh 143.54.10.45:~/Desktop/carac/carac_45nm/." << endl;
+	copyarq << "scp " << top << ".v 143.54.10.45:~/Desktop/sintese45nm/" << top << "_mapped.v" << endl;
 	copyarq.close();
 	printSetupCarac(*c, simulate, copyarq, top); 
 	printScriptCarac(*c, top);
