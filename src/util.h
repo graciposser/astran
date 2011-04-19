@@ -43,6 +43,7 @@ inline void printHeader (ostream& target, string begin, string end) {
 	target << begin << " - Charles Capella Leonhardt <ccleonhardt[at]inf.ufrgs.br>" << end << endl;
 	target << begin << " - Felipe Avila Nesello <felipe.nesello[at]inf.ufrgs.br>" << end << endl;
 	target << begin << " - Gracieli Posser <gposser[at]inf.ufrgs.br>" << end << endl;
+	target << begin << " - Jozeanne Belomo <jbelomo[at]inf.ufrgs.br>" << end << endl;
 	target << begin << " - Luiza Ramos <lramos[at]inf.ufrgs.br>" << end << endl;
 	target << begin << "Acknowledgement" << end << endl;
 	target << begin << " - Cristiano Lazzari <clazz[at]inf.ufrgs.br>" << end << endl;

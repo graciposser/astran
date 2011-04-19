@@ -3,6 +3,17 @@
 
 #include <cmath>
 
+#include <list>
+#include <map>
+#include <string>
+#include <strstream>
+#include <vector>
+#include <queue>
+#include <string>
+#include <iostream>
+#include <sstream>
+#include <fstream>
+
 #include <typeinfo>
 #include <exception>
 	using std::exception;
@@ -647,6 +658,10 @@ private:
 	vector<PosynomialType*> clsElements;
 
 	void registerPosynomialType( PosynomialType * e ) {
+		map<string,PosynomialType*>::const_iterator it = clsAny.find( e->getName() );
+		if ( it != clsAny.end() )
+			throw GeometricProgramException( "Redefinition" );
+	
 		if ( e->getName() != "" ) {
 			clsNames.push_back( e->getName() );
 			clsAny[ e->getName() ] = e;

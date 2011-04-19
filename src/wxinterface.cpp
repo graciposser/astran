@@ -42,38 +42,38 @@ ICPD_frm::ICPD_frm( wxWindow* parent, wxWindowID id, const wxString& title, cons
 	file_load->AppendSeparator();
 	
 	load_technology = new wxMenuItem( file_load, wxID_ANY, wxString( wxT("Technology") ) , wxEmptyString, wxITEM_NORMAL );
-	#ifdef __WXMSW__
+#ifdef __WXMSW__
 	load_technology->SetBitmaps( wxBitmap( wxT("../Images/load_tec.png"), wxBITMAP_TYPE_ANY ) );
-	#elif defined( __WXGTK__ )
+#elif defined( __WXGTK__ )
 	load_technology->SetBitmap( wxBitmap( wxT("../Images/load_tec.png"), wxBITMAP_TYPE_ANY ) );
-	#endif
+#endif
 	file_load->Append( load_technology );
 	
 	wxMenuItem* load_netlist;
 	load_netlist = new wxMenuItem( file_load, wxID_ANY, wxString( wxT("Netlist") ) , wxEmptyString, wxITEM_NORMAL );
-	#ifdef __WXMSW__
+#ifdef __WXMSW__
 	load_netlist->SetBitmaps( wxBitmap( wxT("../Images/load_net.png"), wxBITMAP_TYPE_ANY ) );
-	#elif defined( __WXGTK__ )
+#elif defined( __WXGTK__ )
 	load_netlist->SetBitmap( wxBitmap( wxT("../Images/load_net.png"), wxBITMAP_TYPE_ANY ) );
-	#endif
+#endif
 	file_load->Append( load_netlist );
 	
 	wxMenuItem* load_layouts;
 	load_layouts = new wxMenuItem( file_load, wxID_ANY, wxString( wxT("Layouts") ) , wxEmptyString, wxITEM_NORMAL );
-	#ifdef __WXMSW__
+#ifdef __WXMSW__
 	load_layouts->SetBitmaps( wxBitmap( wxT("../Images/load_lay.png"), wxBITMAP_TYPE_ANY ) );
-	#elif defined( __WXGTK__ )
+#elif defined( __WXGTK__ )
 	load_layouts->SetBitmap( wxBitmap( wxT("../Images/load_lay.png"), wxBITMAP_TYPE_ANY ) );
-	#endif
+#endif
 	file_load->Append( load_layouts );
 	
 	wxMenuItem* load_placement;
 	load_placement = new wxMenuItem( file_load, wxID_ANY, wxString( wxT("Placement") ) , wxEmptyString, wxITEM_NORMAL );
-	#ifdef __WXMSW__
+#ifdef __WXMSW__
 	load_placement->SetBitmaps( wxBitmap( wxT("../Images/load_pl.png"), wxBITMAP_TYPE_ANY ) );
-	#elif defined( __WXGTK__ )
+#elif defined( __WXGTK__ )
 	load_placement->SetBitmap( wxBitmap( wxT("../Images/load_pl.png"), wxBITMAP_TYPE_ANY ) );
-	#endif
+#endif
 	file_load->Append( load_placement );
 	
 	wxMenuItem* load_routing;
@@ -95,29 +95,29 @@ ICPD_frm::ICPD_frm( wxWindow* parent, wxWindowID id, const wxString& title, cons
 	
 	wxMenuItem* save_netlist;
 	save_netlist = new wxMenuItem( file_save, wxID_ANY, wxString( wxT("Netlist") ) , wxEmptyString, wxITEM_NORMAL );
-	#ifdef __WXMSW__
+#ifdef __WXMSW__
 	save_netlist->SetBitmaps( wxBitmap( wxT("../Images/save_net.png"), wxBITMAP_TYPE_ANY ) );
-	#elif defined( __WXGTK__ )
+#elif defined( __WXGTK__ )
 	save_netlist->SetBitmap( wxBitmap( wxT("../Images/save_net.png"), wxBITMAP_TYPE_ANY ) );
-	#endif
+#endif
 	file_save->Append( save_netlist );
 	
 	wxMenuItem* save_layouts;
 	save_layouts = new wxMenuItem( file_save, wxID_ANY, wxString( wxT("Layouts") ) , wxEmptyString, wxITEM_NORMAL );
-	#ifdef __WXMSW__
+#ifdef __WXMSW__
 	save_layouts->SetBitmaps( wxBitmap( wxT("../Images/save_lay.png"), wxBITMAP_TYPE_ANY ) );
-	#elif defined( __WXGTK__ )
+#elif defined( __WXGTK__ )
 	save_layouts->SetBitmap( wxBitmap( wxT("../Images/save_lay.png"), wxBITMAP_TYPE_ANY ) );
-	#endif
+#endif
 	file_save->Append( save_layouts );
 	
 	wxMenuItem* save_placement;
 	save_placement = new wxMenuItem( file_save, wxID_ANY, wxString( wxT("Placement") ) , wxEmptyString, wxITEM_NORMAL );
-	#ifdef __WXMSW__
+#ifdef __WXMSW__
 	save_placement->SetBitmaps( wxBitmap( wxT("../Images/save_pl.png"), wxBITMAP_TYPE_ANY ) );
-	#elif defined( __WXGTK__ )
+#elif defined( __WXGTK__ )
 	save_placement->SetBitmap( wxBitmap( wxT("../Images/save_pl.png"), wxBITMAP_TYPE_ANY ) );
-	#endif
+#endif
 	file_save->Append( save_placement );
 	
 	wxMenuItem* save_routing;
@@ -156,11 +156,11 @@ ICPD_frm::ICPD_frm( wxWindow* parent, wxWindowID id, const wxString& title, cons
 	
 	wxMenuItem* read_script;
 	read_script = new wxMenuItem( menu_file, wxID_ANY, wxString( wxT("Read Script") ) , wxEmptyString, wxITEM_NORMAL );
-	#ifdef __WXMSW__
+#ifdef __WXMSW__
 	read_script->SetBitmaps( wxBitmap( wxT("../Images/read_script.png"), wxBITMAP_TYPE_ANY ) );
-	#elif defined( __WXGTK__ )
+#elif defined( __WXGTK__ )
 	read_script->SetBitmap( wxBitmap( wxT("../Images/read_script.png"), wxBITMAP_TYPE_ANY ) );
-	#endif
+#endif
 	menu_file->Append( read_script );
 	
 	wxMenuItem* save_history;
@@ -171,22 +171,22 @@ ICPD_frm::ICPD_frm( wxWindow* parent, wxWindowID id, const wxString& title, cons
 	
 	wxMenuItem* view_preferences;
 	view_preferences = new wxMenuItem( menu_file, wxID_ANY, wxString( wxT("Preferences...") ) , wxEmptyString, wxITEM_NORMAL );
-	#ifdef __WXMSW__
+#ifdef __WXMSW__
 	view_preferences->SetBitmaps( wxBitmap( wxT("../Images/view_pref.png"), wxBITMAP_TYPE_ANY ) );
-	#elif defined( __WXGTK__ )
+#elif defined( __WXGTK__ )
 	view_preferences->SetBitmap( wxBitmap( wxT("../Images/view_pref.png"), wxBITMAP_TYPE_ANY ) );
-	#endif
+#endif
 	menu_file->Append( view_preferences );
 	
 	menu_file->AppendSeparator();
 	
 	wxMenuItem* exit;
 	exit = new wxMenuItem( menu_file, wxID_ANY, wxString( wxT("Exit") ) , wxEmptyString, wxITEM_NORMAL );
-	#ifdef __WXMSW__
+#ifdef __WXMSW__
 	exit->SetBitmaps( wxBitmap( wxT("../Images/close.png"), wxBITMAP_TYPE_ANY ) );
-	#elif defined( __WXGTK__ )
+#elif defined( __WXGTK__ )
 	exit->SetBitmap( wxBitmap( wxT("../Images/close.png"), wxBITMAP_TYPE_ANY ) );
-	#endif
+#endif
 	menu_file->Append( exit );
 	
 	barra_menu->Append( menu_file, wxT("File") );
@@ -194,21 +194,20 @@ ICPD_frm::ICPD_frm( wxWindow* parent, wxWindowID id, const wxString& title, cons
 	menu_circuit = new wxMenu();
 	wxMenuItem* config_circuit;
 	config_circuit = new wxMenuItem( menu_circuit, wxID_ANY, wxString( wxT("Configure...") ) , wxEmptyString, wxITEM_NORMAL );
-	#ifdef __WXMSW__
+#ifdef __WXMSW__
 	config_circuit->SetBitmaps( wxBitmap( wxT("../Images/view_cir.png"), wxBITMAP_TYPE_ANY ) );
-	#elif defined( __WXGTK__ )
+#elif defined( __WXGTK__ )
 	config_circuit->SetBitmap( wxBitmap( wxT("../Images/view_cir.png"), wxBITMAP_TYPE_ANY ) );
-	#endif
+#endif
 	menu_circuit->Append( config_circuit );
-	//config_circuit->Enable( false );
 	
 	wxMenuItem* view_rules;
 	view_rules = new wxMenuItem( menu_circuit, wxID_ANY, wxString( wxT("Rules...") ) , wxEmptyString, wxITEM_NORMAL );
-	#ifdef __WXMSW__
+#ifdef __WXMSW__
 	view_rules->SetBitmaps( wxBitmap( wxT("../Images/view_rules.png"), wxBITMAP_TYPE_ANY ) );
-	#elif defined( __WXGTK__ )
+#elif defined( __WXGTK__ )
 	view_rules->SetBitmap( wxBitmap( wxT("../Images/view_rules.png"), wxBITMAP_TYPE_ANY ) );
-	#endif
+#endif
 	menu_circuit->Append( view_rules );
 	
 	menu_size = new wxMenu();
@@ -231,11 +230,11 @@ ICPD_frm::ICPD_frm( wxWindow* parent, wxWindowID id, const wxString& title, cons
 	menu_cells = new wxMenu();
 	wxMenuItem* netlist_cellgen;
 	netlist_cellgen = new wxMenuItem( menu_cells, wxID_ANY, wxString( wxT("CellGen...") ) , wxEmptyString, wxITEM_NORMAL );
-	#ifdef __WXMSW__
+#ifdef __WXMSW__
 	netlist_cellgen->SetBitmaps( wxBitmap( wxT("../Images/view_cellgen.png"), wxBITMAP_TYPE_ANY ) );
-	#elif defined( __WXGTK__ )
+#elif defined( __WXGTK__ )
 	netlist_cellgen->SetBitmap( wxBitmap( wxT("../Images/view_cellgen.png"), wxBITMAP_TYPE_ANY ) );
-	#endif
+#endif
 	menu_cells->Append( netlist_cellgen );
 	
 	wxMenuItem* netlist_calcPinsPos;
@@ -301,11 +300,11 @@ ICPD_frm::ICPD_frm( wxWindow* parent, wxWindowID id, const wxString& title, cons
 	menu_help = new wxMenu();
 	wxMenuItem* help_about;
 	help_about = new wxMenuItem( menu_help, wxID_ANY, wxString( wxT("About ICPD") ) , wxEmptyString, wxITEM_NORMAL );
-	#ifdef __WXMSW__
+#ifdef __WXMSW__
 	help_about->SetBitmaps( wxBitmap( wxT("../Images/help.png"), wxBITMAP_TYPE_ANY ) );
-	#elif defined( __WXGTK__ )
+#elif defined( __WXGTK__ )
 	help_about->SetBitmap( wxBitmap( wxT("../Images/help.png"), wxBITMAP_TYPE_ANY ) );
-	#endif
+#endif
 	menu_help->Append( help_about );
 	
 	wxMenuItem* help_homepage;
@@ -1385,9 +1384,29 @@ View_PrintGP::View_PrintGP( wxWindow* parent, wxWindowID id, const wxString& tit
 	fgSizer6->SetFlexibleDirection( wxBOTH );
 	fgSizer6->SetNonFlexibleGrowMode( wxFLEX_GROWMODE_SPECIFIED );
 	
-	static_design1 = new wxStaticText( this, wxID_ANY, wxT("Technology:"), wxDefaultPosition, wxDefaultSize, 0 );
+	static_design13 = new wxStaticText( this, wxID_ANY, wxT("Optimize:"), wxDefaultPosition, wxDefaultSize, 0 );
+	static_design13->Wrap( -1 );
+	fgSizer6->Add( static_design13, 0, wxALL, 5 );
+	
+	wxString optimize_choiceChoices[] = { wxT("delay"), wxT("area") };
+	int optimize_choiceNChoices = sizeof( optimize_choiceChoices ) / sizeof( wxString );
+	optimize_choice = new wxChoice( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, optimize_choiceNChoices, optimize_choiceChoices, 0 );
+	optimize_choice->SetSelection( 0 );
+	fgSizer6->Add( optimize_choice, 0, wxALL, 5 );
+	
+	static_design1 = new wxStaticText( this, wxID_ANY, wxT("Sizing Type:"), wxDefaultPosition, wxDefaultSize, 0 );
 	static_design1->Wrap( -1 );
 	fgSizer6->Add( static_design1, 0, wxALL, 5 );
+	
+	wxString sizingtype_choiceChoices[] = { wxT("gate"), wxT("transistor") };
+	int sizingtype_choiceNChoices = sizeof( sizingtype_choiceChoices ) / sizeof( wxString );
+	sizingtype_choice = new wxChoice( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, sizingtype_choiceNChoices, sizingtype_choiceChoices, 0 );
+	sizingtype_choice->SetSelection( 0 );
+	fgSizer6->Add( sizingtype_choice, 0, wxALL, 5 );
+	
+	static_design12 = new wxStaticText( this, wxID_ANY, wxT("Technology:"), wxDefaultPosition, wxDefaultSize, 0 );
+	static_design12->Wrap( -1 );
+	fgSizer6->Add( static_design12, 0, wxALL, 5 );
 	
 	wxString technology_choiceChoices[] = { wxT("45nm"), wxT("350nm") };
 	int technology_choiceNChoices = sizeof( technology_choiceChoices ) / sizeof( wxString );
@@ -1412,14 +1431,14 @@ View_PrintGP::View_PrintGP( wxWindow* parent, wxWindowID id, const wxString& tit
 	static_design112->Wrap( -1 );
 	fgSizer6->Add( static_design112, 0, wxALL, 5 );
 	
-	parameterCload = new wxTextCtrl( this, wxID_ANY, wxT("6*1.434879e-16"), wxDefaultPosition, wxDefaultSize, 0 );
+	parameterCload = new wxTextCtrl( this, wxID_ANY, wxT("4*1.434879e-16"), wxDefaultPosition, wxDefaultSize, 0 );
 	fgSizer6->Add( parameterCload, 0, wxALL, 5 );
 	
 	static_design111 = new wxStaticText( this, wxID_ANY, wxT("Max Area:"), wxDefaultPosition, wxDefaultSize, 0 );
 	static_design111->Wrap( -1 );
 	fgSizer6->Add( static_design111, 0, wxALL, 5 );
 	
-	parameterMaxArea = new wxTextCtrl( this, wxID_ANY, wxT("2000"), wxDefaultPosition, wxDefaultSize, 0 );
+	parameterMaxArea = new wxTextCtrl( this, wxID_ANY, wxT("3.255"), wxDefaultPosition, wxDefaultSize, 0 );
 	fgSizer6->Add( parameterMaxArea, 0, wxALL, 5 );
 	
 	static_design1111 = new wxStaticText( this, wxID_ANY, wxT("Delay:"), wxDefaultPosition, wxDefaultSize, 0 );
@@ -1433,7 +1452,7 @@ View_PrintGP::View_PrintGP( wxWindow* parent, wxWindowID id, const wxString& tit
 	static_design11111->Wrap( -1 );
 	fgSizer6->Add( static_design11111, 0, wxALL, 5 );
 	
-	parameterMaxCin = new wxTextCtrl( this, wxID_ANY, wxT("4"), wxDefaultPosition, wxDefaultSize, 0 );
+	parameterMaxCin = new wxTextCtrl( this, wxID_ANY, wxT("1.0001"), wxDefaultPosition, wxDefaultSize, 0 );
 	fgSizer6->Add( parameterMaxCin, 0, wxALL, 5 );
 	
 	ok_button = new wxButton( this, wxID_ANY, wxT("&OK"), wxDefaultPosition, wxDefaultSize, 0 );

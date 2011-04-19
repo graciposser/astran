@@ -42,7 +42,7 @@ class Circuit {
 	CellNetlst *topNetlist;
 	
 	//parameters to PrintGP
-	string  technology ; 
+	string  technology, optimize, sizingtype ; 
 	double Cload ,constrArea, constrDelay,constrCin;
     
     public:
@@ -50,13 +50,19 @@ class Circuit {
 	~Circuit(){};
 	
 	//parameters to PrintGP
+	int getoptimize(){if(optimize=="delay") return 0;  else return 1;};
+	int getsizingtype(){if(sizingtype=="gate") return 0;  else return 1;};
 	int gettechnology(){if(technology=="45nm") return 0;  else return 1;};
+	string getoptimizename(){return optimize;};
+	string getsizingtypename(){return sizingtype;};
 	string gettechnologyname(){return technology;};
 	double getCload(){return Cload;};
 	double getconstrArea(){return constrArea;};
 	double getconstrDelay(){return constrDelay;};
 	double getconstrCin(){return constrCin;};
 	
+	void setoptimize(string s){optimize=s;};
+	void setsizingtype(string s){sizingtype=s;};
 	void settechnology(string s){technology=s;};
 	void setCload(double n){ Cload=n;};
 	void setconstrArea(double n){ constrArea=n;};

@@ -2,7 +2,6 @@
  *  size.cpp
  *  ICPD
  *
- *  Created by Adriel Mota Ziesemer Jr. on 5/18/10.
  *	Implemented by Gracieli Posser, Guilherme Flach, Luiza S. P. Ramos and Jozeanne Belomo
  *  Copyright 2010 __MyCompanyName__. All rights reserved.
  *
@@ -455,48 +454,91 @@ void Size::printGP_Constants( GeometricProgram &gp, const string &technology, co
 
 // -----------------------------------------------------------------------------
 
-void Size::printGP_InstanceHeader( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName ) {
-	Variable * instvar = gp.requestVariable( instanceName );
-
-	gp.createMonomial( "Xn_" + instanceName, gp.requestConstantType( "Xn" ), instvar );
-	gp.createMonomial( "Xp_" + instanceName, gp.requestConstantType( "Xp" ), instvar );
-
+void Size::printGP_InstanceHeader( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName, const string &sizingType ) {
+	
+	if (sizingType == "gate"){
+		Variable * instvar = gp.requestVariable( instanceName );
+		gp.createMonomial( "Xn_" + instanceName, gp.requestConstantType( "Xn" ), instvar );
+		gp.createMonomial( "Xp_" + instanceName, gp.requestConstantType( "Xp" ), instvar );
+	} // end if
+	string scalefactor;
+	   
 	//===========Imprime o Ron de cada transistor=========
-
-	for ( int i=0; i<rc.getNumTransistors(); i++){
-		const string Rtrans = "Rtrans" + ToString(i) + "_" + instanceName;
-		double RTransP = 0;
-		double RTransN = 0;
-		switch ( rc.getTransistorType(i) ) {
-			case RCTranslator::PMOS:
-				RTransP = gp.requestConstantType ("ReqP")->computeValue() / rc.getTransistorWidth (i);
-				gp.createMonomial( Rtrans, gp.createConstant (RTransP), instvar, -1 );
-				break;
-			case RCTranslator::NMOS:
-				RTransN = gp.requestConstantType ("ReqN")->computeValue() / rc.getTransistorWidth (i);
-				gp.createMonomial( Rtrans, gp.createConstant (RTransN), instvar, -1 );
-				break;
-		} // end swtich
-	} // end for
+	if ( sizingType == "gate" ){
+		Variable * instvar = gp.requestVariable( instanceName );
+		for ( int i=0; i<rc.getNumTransistors(); i++){
+			const string Rtrans = "Rtrans" + ToString(i) + "_" + instanceName;
+			double RTransP = 0;
+			double RTransN = 0;
+			switch ( rc.getTransistorType(i) ) {
+				case RCTranslator::PMOS:
+					RTransP = gp.requestConstantType ("ReqP")->computeValue() / rc.getTransistorWidth (i);
+					gp.createMonomial( Rtrans, gp.createConstant (RTransP), instvar, -1 );
+					break;
+				case RCTranslator::NMOS:
+					RTransN = gp.requestConstantType ("ReqN")->computeValue() / rc.getTransistorWidth (i);
+					gp.createMonomial( Rtrans, gp.createConstant (RTransN), instvar, -1 );
+					break;
+			} // end swtich
+		} // end for
+	} else if ( sizingType == "transistor" ){
+		for ( int i=0; i<rc.getNumTransistors(); i++){
+			const string Rtrans = "Rtrans" + ToString(i) + "_" + instanceName;
+			scalefactor = "X" + ToString ( i ) + "_" + instanceName ; 
+			Variable * instscale = gp.requestVariable( scalefactor );
+			switch ( rc.getTransistorType(i) ) {
+				case RCTranslator::PMOS:
+					gp.createMonomial( Rtrans, gp.requestConstantType ("ReqP"), instscale, -1 );
+					break;
+				case RCTranslator::NMOS:
+					gp.createMonomial( Rtrans, gp.requestConstantType ("ReqN"), instscale, -1 );
+					break;
+			} // end swtich
+		} // end for
+	} else {
+		cout << "Sizing type must be gate or transistor." << endl;
+	} // end else
+	
 
 	//===========Imprime a Capacitância de entrada de cada transistor=========
-	for ( int i=0; i<rc.getNumTransistors(); i++){
-		const string Ctrans = "Ctrans" + ToString(i) + "_" + instanceName;
-		double CTransP = 0;
-		double CTransN = 0;
+	if ( sizingType == "gate" ){
+		Variable * instvar = gp.requestVariable( instanceName );
+		for ( int i=0; i<rc.getNumTransistors(); i++){
+			const string Ctrans = "Ctrans" + ToString(i) + "_" + instanceName;
+			double CTransP = 0;
+			double CTransN = 0;
 
-		switch ( rc.getTransistorType(i) ) {
-			case RCTranslator::PMOS:
-				CTransP = gp.requestConstantType ("CsbP")->computeValue() * rc.getTransistorWidth (i);
-				gp.createMonomial( Ctrans, gp.createConstant (CTransP), instvar );
-				break;
-			case RCTranslator::NMOS:
-				CTransN = gp.requestConstantType ("CsbN")->computeValue() * rc.getTransistorWidth (i);
-				gp.createMonomial( Ctrans, gp.createConstant (CTransN), instvar );
-				break;
-			} // end switch
-	} // end for
-
+			switch ( rc.getTransistorType(i) ) {
+				case RCTranslator::PMOS:
+					CTransP = gp.requestConstantType ("CsbP")->computeValue() * rc.getTransistorWidth (i);
+					gp.createMonomial( Ctrans, gp.createConstant (CTransP), instvar );
+					break;
+				case RCTranslator::NMOS:
+					CTransN = gp.requestConstantType ("CsbN")->computeValue() * rc.getTransistorWidth (i);
+					gp.createMonomial( Ctrans, gp.createConstant (CTransN), instvar );
+					break;
+				} // end switch
+		} // end for
+	} else if ( sizingType == "transistor" ){
+		for ( int i=0; i<rc.getNumTransistors(); i++){
+			const string Ctrans = "Ctrans" + ToString(i) + "_" + instanceName;
+			scalefactor = "X" + ToString ( i ) + "_" + instanceName ; 
+			Variable * instscale = gp.requestVariable( scalefactor );
+			switch ( rc.getTransistorType(i) ) {
+				case RCTranslator::PMOS:
+					scalefactor = "X" + ToString ( i ) + "_" + instanceName ;
+					gp.createMonomial( Ctrans, gp.requestConstantType ("CsbP"), instscale );
+					break;
+				case RCTranslator::NMOS:
+					scalefactor = "X" + ToString ( i ) + "_" + instanceName ;
+					gp.createMonomial( Ctrans, gp.requestConstantType ("CsbN"), instscale );
+					break;
+				} // end switch
+		} // end for
+	} else {
+		cout << "Sizing type must be gate or transistor." << endl;
+	} // end else
+	
 	//===========Imprime a area e cin da instancia =========
 	double areaPMOS = 0;
 	double areaNMOS = 0;
@@ -513,8 +555,22 @@ void Size::printGP_InstanceHeader( GeometricProgram &gp, const RCTranslator &rc,
 		gp.createConstant( areaNMOS ),
 		gp.createConstant( areaPMOS ) );
 
-	// Afinal = Abase * X_Instance
-	gp.createMul( "Afinal_" + instanceName, areaBase, instvar );
+	// Afinal = Abase * X_Instance for gate sizing
+	if (sizingType == "gate"){
+		Variable * instvar = gp.requestVariable( instanceName );
+		gp.createMul( "Afinal_" + instanceName, areaBase, instvar );
+	} else if (sizingType == "transistor" ){
+		Sum * sumArea = gp.createSum( "Afinal_" + instanceName );
+
+		for ( int i = 0; i < rc.getNumTransistors(); i++ ) {
+			sumArea->addTerm( gp.requestPosynomialType( "X" + ToString(i) + "_" + instanceName ) );
+		} // end for
+	
+	} else {
+		cout << "Sizing must be transistor or gate type." << endl;
+	} // end else
+
+	//Afinal = sum of all transistor sizes
 } // end method
 
 // -----------------------------------------------------------------------------
@@ -529,16 +585,18 @@ void Size::printGP_InstanceFooter( GeometricProgram &gp, const RCTranslator &rc,
 
 // -----------------------------------------------------------------------------
 
-void Size::printGP_InstanceCin( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName ) {
+void Size::printGP_InstanceCin( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName, const string &sizingType ) {
 	const vector<int> &inputs = rc.getInputNodes();
 	for ( int i = 0; i < inputs.size(); i++ ) {
 		const int nodeId = inputs[i];
-
+		//cout << nodeId << endl;
+		
 		int numPMOS = 0;
 		double widthPMOS = 0;
 		//double totalWidthPMOS = 0;
 		int numNMOS = 0;
 		double widthNMOS = 0;
+		string scalefactor;
 		//double totalWidthNMOS = 0;
 
 		const vector<int> &gates = rc.getTriggerTransistors(nodeId);
@@ -551,21 +609,74 @@ void Size::printGP_InstanceCin( GeometricProgram &gp, const RCTranslator &rc, co
 			} // end swtich
 
 		} // end for
+		
 		//totalWidthNMOS = numNMOS * widthNMOS;
 		//totalWidthPMOS = numPMOS * widthPMOS;
 		// CinBase = CgateP*numPMOS + CgateN*numNMOS
+		
 		ConstantSum * sumBase = gp.createConstantSum( "Cin_Base_" + instanceName + "_" + rc.getNodeName(nodeId),
-			gp.createConstantMul( gp.requestConstantType("CgateN"), gp.createConstant( widthNMOS ) ),
-			gp.createConstantMul( gp.requestConstantType("CgateP"), gp.createConstant( widthPMOS ) ) );
-
-		// CinFinal = CinBase * Instance_Size
-		gp.createMul( "Cin_" + instanceName + "_" + rc.getNodeName(nodeId), sumBase, gp.requestVariable( instanceName ) );
+				gp.createConstantMul( gp.requestConstantType("CgateN"), gp.createConstant( widthNMOS ) ),
+				gp.createConstantMul( gp.requestConstantType("CgateP"), gp.createConstant( widthPMOS ) ) );
+				
+		if (sizingType == "gate"){
+			// CinFinal = CinBase * Instance_Size
+			gp.createMul( "Cin_" + instanceName + "_" + rc.getNodeName(nodeId), sumBase, gp.requestVariable( instanceName ) );
+		} else if ( sizingType == "transistor" ){
+			
+			string CinBaseTrans;
+			Variable * instscale;
+			for ( int k = 0; k < gates.size(); k++ ) {
+				
+				const int transId = gates[k];
+				CinBaseTrans = "Cin_Base_" + instanceName + "_" + ToString ( transId );
+				
+				scalefactor = "X" + ToString ( transId ) + "_" + instanceName ;
+				
+				instscale = gp.requestVariable( scalefactor );
+				
+				switch ( rc.getTransistorType(transId) ) {
+					case RCTranslator::PMOS: 
+						gp.createMonomial( CinBaseTrans, gp.requestConstantType("CgateP"), instscale );
+					break;
+					case RCTranslator::NMOS: 
+						gp.createMonomial( CinBaseTrans, gp.requestConstantType("CgateN"), instscale );
+					break;
+				} // end swtich
+			} // end for
+			
+			
+			Sum * sumCin = gp.createSum( "Cin_" + instanceName + "_" + rc.getNodeName(nodeId) );
+			//cout << "Cin_" << instanceName << "_" << rc.getNodeName(nodeId) << endl;
+			//string CinBaseTrans;
+			//Variable * instscale;
+			for ( int k = 0; k < gates.size(); k++ ) {
+				const int transId = gates[k];
+				CinBaseTrans = "Cin_Base_" + instanceName + "_" + ToString ( transId );
+				
+				scalefactor = "X" + ToString ( transId ) + "_" + instanceName ;
+				instscale = gp.requestVariable( scalefactor );
+				switch ( rc.getTransistorType(transId) ) {
+					case RCTranslator::PMOS: 
+						//gp.createMonomial( CinBaseTrans, gp.requestConstantType("CgateP"), instscale );
+						sumCin->addTerm( gp.requestPosynomialType( CinBaseTrans ) );
+					break;
+					case RCTranslator::NMOS: 
+						//gp.createMonomial( CinBaseTrans, gp.requestConstantType("CgateN"), instscale );
+						sumCin->addTerm( gp.requestPosynomialType( CinBaseTrans ) );
+					break;
+				} // end switch
+			} // end for
+		} else {
+			cout << "Sizing type must be gate or transistor." << endl;
+		} // end else
+		
+		//" X" + ToString(i) + "_" + it->first
 	} // end for
 } // end method
 
 // -----------------------------------------------------------------------------
 
-void Size::printGP_InstanceCinConstraints( GeometricProgram &gp, Circuit * circuit ) {
+void Size::printGP_InstanceCinConstraints( GeometricProgram &gp, Circuit * circuit, const string &sizingType ) {
 	CellNetlst * topNetlist = circuit->getTopNetlist();
 	map<string, Inst> &instances = topNetlist->getInstances();
 	
@@ -573,7 +684,7 @@ void Size::printGP_InstanceCinConstraints( GeometricProgram &gp, Circuit * circu
 		Inst &inst = it->second;
 		
 		CellNetlst * netlist = circuit->getCellNetlst( inst.subCircuit );
-
+	
 		vector<int> &ports = inst.ports;
 		for (int l=0; l<ports.size(); l++) {
 			t_net &net = topNetlist->getNet(ports[l]);
@@ -582,10 +693,19 @@ void Size::printGP_InstanceCinConstraints( GeometricProgram &gp, Circuit * circu
 					if ( circuit->isPrimaryInput( net.name ) ){
 						const string id = "_" + inst.name + "_" + netlist->getInout(l);
 						
-						gp.addInequalityConstraint( 
-							gp.requestPosynomialType("Cin" + id ), 
-							gp.createConstantMul( gp.requestConstantType("constrCin"), gp.requestConstantType("Cin_Base" + id ) )
-						);
+						if ( sizingType == "gate" ) {
+							gp.addInequalityConstraint( 
+								gp.requestPosynomialType("Cin" + id ), 
+								gp.createConstantMul( gp.requestConstantType("constrCin"), gp.requestConstantType("Cin_Base" + id ) )
+							);
+						} else if ( sizingType == "transistor" ) {
+							gp.addInequalityConstraint( 
+								gp.requestPosynomialType("Cin" + id ), 
+								gp.createConstantMul( gp.requestConstantType("constrCin"), gp.requestConstantType("Cin_Base" + id ) )
+							);
+						} else {
+							cout << "Sizing type must be transistor or gate." << endl;
+						} // end else
 					} // end if
 				} // end if
 			} //  end if
@@ -634,7 +754,7 @@ void Size::printGP_InstanceCload( GeometricProgram &gp, Circuit * circuit, const
 // -----------------------------------------------------------------------------
 
 void Size::printGP_InstanceRC( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName ) {
-	Variable * instvar = gp.requestVariable( instanceName );
+	//Variable * instvar = gp.requestVariable( instanceName );
 
 	const string rcTreeName = "_" + ToString(rc.getRCTreeCounter()-1) + "_";
 
@@ -695,13 +815,13 @@ void Size::printGP_InstanceRC( GeometricProgram &gp, const RCTranslator &rc, con
 
 // -----------------------------------------------------------------------------
 
-void Size::printGP_Instance( GeometricProgram &gp, RCTranslator &rc, Circuit * circuit, const string &instanceName ) {
+void Size::printGP_Instance( GeometricProgram &gp, RCTranslator &rc, Circuit * circuit, const string &instanceName, const string &sizingType ) {
 	CellNetlst * topNetlist = circuit->getTopNetlist();
 	Inst &instance = topNetlist->getInstance( instanceName );
 	CellNetlst * netlist = circuit->getCellNetlst( instance.subCircuit );
-
+	
 	try {
-		printGP_InstanceHeader( gp, rc, instanceName );
+		printGP_InstanceHeader( gp, rc, instanceName, sizingType );
 		while ( rc.next() )
 			printGP_InstanceRC( gp, rc, instanceName );
 		printGP_InstanceFooter( gp, rc, instanceName );
@@ -755,6 +875,7 @@ void Size::printGP_CircuitDelayWalker( GeometricProgram &gp, Circuit * circuit, 
 // -----------------------------------------------------------------------------
 
 void Size::printGP_CircuitDelay( GeometricProgram &gp, Circuit * circuit ) {
+	//cout << "Começou o delay ... " << endl;
 	CellNetlst * topNetlist = circuit->getTopNetlist();
 	map<string, Interface> *interfaces = circuit->getInterfaces();
 	map<string, Inst> &instances = topNetlist->getInstances();
@@ -774,8 +895,16 @@ void Size::printGP_CircuitDelay( GeometricProgram &gp, Circuit * circuit ) {
 		if ( driver )
 			printGP_CircuitDelayWalker( gp, circuit, driver );
 	} // end for
-
-
+	//cout << "Passou 1 " << endl;
+	// Verifica se todas as celulas foram visitadas.
+	for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ) {
+		if ( it->second.instanceSized == false ) {
+			cout <<	"Bug, a celula '" + it->first + "' nao foi visitada.\n" ;
+			throw string("Bug, a celula '" + it->first + "' nao foi visitada." ); 
+		} // end if
+	} // end for
+	//cout << " Passou 2 " << endl;
+	// Escreve delay.
 	Max * circuitDelay = gp.createMax( "delay" );
 	//cout << "delay = max( ";
 	for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ){
@@ -850,14 +979,18 @@ void Size::printGP_CircuitPower( GeometricProgram &gp, Circuit * circuit ) {
 
 // -----------------------------------------------------------------------------
 
-void Size::printGP(Circuit * circuit, const string &target ) {
+void Size::printGP(Circuit * circuit, const string &target, const string &sizingType ) {
 	CellNetlst * topNetlist = circuit->getTopNetlist();
 	map<string,Inst> &instances = topNetlist->getInstances();
 
 	vector< RCTranslator > rcs;
 	SetupRCTranslators( circuit, rcs );
 
+	// Warm-up the RCTranslator.
+	RCTranslator rc;
+				
 	string technology = circuit->gettechnologyname();
+	string top = circuit->getTopCell();
 	double Cload = circuit->getCload(); 
 	double constrArea = circuit->getconstrArea(); 
 	double constrDelay = circuit->getconstrDelay();
@@ -867,36 +1000,68 @@ void Size::printGP(Circuit * circuit, const string &target ) {
 
 	//try {
 		// Write problem variables.
-		for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
-			clsGP.createVariable( it->first );
-        
+		if (sizingType == "gate"){
+			for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
+				clsGP.createVariable( it->first );
+        } else if (sizingType == "transistor"){
+			int cont = 0;
+			for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ){
+				//cout << it->first << endl;
+				string name;
+				
+				CellNetlst * netlist = circuit->getCellNetlst( it->second.subCircuit );
+
+				vector<Trans> &trans = netlist->getTransistors();
+				for (int i=0; i<trans.size(); i++ ){
+					name = "X" + ToString(i) + "_" + it->first;
+					//cout << name << endl;
+					clsGP.createVariable ( name );
+					cont++;
+				} // end for
+				
+			//	for ( int i=0; i<rc.getNumTransistors(); i++){
+					
+			//	}//end for
+			} // end for
+			cout << "O circuito " << top << " possui " << cont << " transistores." << endl;
+		} else{
+				cout << "Sizing type must be gate or transistor" << endl;
+		} // end else
+		
 	    // Write constants.
 		//printGP_Constants( clsGP, "45nm", 8.609274e-16, 2303.82, 4.29113e-10, 4 ); //Cload ( 6*1.434879e-16), constrArea, constrDelay, constrCin
 		printGP_Constants( clsGP, technology, Cload, constrArea, constrDelay, constrCin ); //Cload, constrArea, constrDelay, constrCin
-
         
 		// Write cins.
 		counter = 0;
-		for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
-			printGP_InstanceCin( clsGP, rcs[counter++], it->first );
-
-		// Write cloads.
+		
+		for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ){
+			//cout << it->second.subCircuit << endl;
+			printGP_InstanceCin( clsGP, rcs[counter++], it->first, sizingType );
+		}
+				// Write cloads.
 		for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
 			printGP_InstanceCload( clsGP, circuit, it->first );
-
+		
 		// Write RC Trees of each instance.
 		counter = 0;
 		for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
-			printGP_Instance( clsGP, rcs[counter++], circuit, it->first );
-
+			printGP_Instance( clsGP, rcs[counter++], circuit, it->first, sizingType );
+		
 		// Write delay.
 		printGP_CircuitDelay( clsGP, circuit );
 
+		//cout << "step: 1" << endl;
+
 		// Write area.
 		printGP_CircuitArea( clsGP, circuit );
+		
+		//cout << "step: 2" << endl;
 
 		// Write power.
 		printGP_CircuitPower( clsGP, circuit );
+		
+		//cout << "step: 3" << endl;
 
 		// Write objective and specific constraints.
 		if ( target == "delay" ) {
@@ -913,18 +1078,69 @@ void Size::printGP(Circuit * circuit, const string &target ) {
 			throw GeometricProgramException( "Invalid target minimization! Should be 'delay' or 'area'." );
 		} // end else
 
+		//cout << "step: 4" << endl;
+
 		// Write instance size constraints.
-		for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ) {
-			clsGP.addInequalityConstraint( clsGP.requestConstantType( "Xmin" ), clsGP.requestVariable( it->first ) );
-			clsGP.addInequalityConstraint( clsGP.requestVariable( it->first ), clsGP.requestConstantType( "Xmax" ) );
-		} // end for
+		if (sizingType == "gate" ){
+			for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ) {
+				clsGP.addInequalityConstraint( clsGP.requestConstantType( "Xmin" ), clsGP.requestVariable( it->first ) );
+				clsGP.addInequalityConstraint( clsGP.requestVariable( it->first ), clsGP.requestConstantType( "Xmax" ) );
+			} // end for
+		} else if ( sizingType == "transistor" ) {
+			string scalefactor;
+			
+			for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ) {
+				for ( int i=0; i<rc.getNumTransistors(); i++){
+					scalefactor = "X" + ToString(i) + "_" + it->first;
+					Variable * instscale = clsGP.requestVariable( scalefactor );
+					switch ( rc.getTransistorType(i) ) {
+						case RCTranslator::PMOS: 
+							clsGP.addInequalityConstraint( clsGP.requestConstantType( "Xp" ), instscale );
+							clsGP.addInequalityConstraint( instscale, clsGP.createConstantMul( clsGP.requestConstantType("Xmax"), clsGP.requestConstantType("Xp") ) );
+						break;
+						case RCTranslator::NMOS: 
+							clsGP.addInequalityConstraint( clsGP.requestConstantType( "Xn" ), instscale ); 
+							clsGP.addInequalityConstraint( instscale, clsGP.createConstantMul( clsGP.requestConstantType("Xmax"), clsGP.requestConstantType("Xn") ) );
+						break;
+					} // end swtich
+				}//end for
+			} // end for
+		} else {
+			cout << "Sizing type must be transistor or gate." << endl;
+		}
+		
+		
+		//cout << "step: 5" << endl;		
 				
 		// Write cins.
-		printGP_InstanceCinConstraints( clsGP, circuit );	
+		printGP_InstanceCinConstraints( clsGP, circuit, sizingType );	
+
+		//cout << "step: 6" << endl;
 
 		// Compute elmore delay.
-		for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
-			clsGP.assignValue(it->first, 1 );
+		if ( sizingType == "gate" ){
+			for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ )
+				clsGP.assignValue(it->first, 1 );
+		} else if ( sizingType == "transistor" ){
+			string factor;
+			//cout << "Dar factor. " << endl;
+			for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ) {
+				CellNetlst * netlist = circuit->getCellNetlst( it->second.subCircuit );
+
+
+				vector<Trans> &trans = netlist->getTransistors();
+				for (int i=0; i<trans.size(); i++ ){
+					factor = "X" + ToString(i) + "_" + it->first;
+					clsGP.assignValue(factor, trans[i].width ); // DAR WIDTH PELO TRANSISTOR
+					//cout << "Factor: " << factor << " = " << trans[i].width << endl;
+				} // end for
+			} // end for
+			
+		} else {
+			cout << "Sizing type must be transistor or gate." << endl;
+		} // end else
+		
+		//cout << "step: 7" << endl;
 		
 		cout << "INFO - Before =================================================\n";
 		cout << "Delay: " << clsGP.requestPosynomialType("delay")->computeValue() << "\n";
@@ -934,6 +1150,7 @@ void Size::printGP(Circuit * circuit, const string &target ) {
 		cout << " ==============================================================\n";
 
 		// Output
+		
 		ofstream file;
 		
 		file.open( "gp_generalized.m" );
@@ -948,17 +1165,20 @@ void Size::printGP(Circuit * circuit, const string &target ) {
 		file.close();
 
 		clsGP.standardize( sgp );
-		file.open( "gp_standard.m" );
+		string fil = "gp_standard_" + top + ".m";
+		file.open( fil.c_str() );
 		sgp.print( file );
 		file << "assign(solution);" << endl;
 		//file << "delay = eval (delay, solution);" << endl;
 		//file << "Afinal = eval (Afinal, solution);" << endl; 
 		//file << "Power = eval (Power, solution);" << endl; 
-		file << "save arq.txt ";
+		file << "save arq_" << top << ".txt ";
 		
 		const map<string,Variable*> &vars = clsGP.getVariableMap();
+		cout << "O circuito " << top << " possui " << vars.size() << " variáveis." << endl;
 		for (map<string,Variable*>::const_iterator instances_it = vars.begin(); instances_it != vars.end(); instances_it++){
 			file << instances_it->first << " ";
+			//cout << instances_it->first << endl;
 		} // end for
 		
 		
@@ -970,7 +1190,7 @@ void Size::printGP(Circuit * circuit, const string &target ) {
 		file.close();
 
 	//} catch ( GeometricProgramException &e ) {
-	//	cerr << "[EXCEPTION] " << e.what() << "\n";
+		//cerr << "[EXCEPTION] " << e.what() << "\n";
 	//} // end catch
 } // end method
 
@@ -1364,7 +1584,7 @@ bool Size::fanout4(Circuit* c){
 	double Xp = 0.135;
 	double cellArea = 0;
     queue<string> instancesFIFO;
-	string technology = "45nm";
+	string technology = "350nm";
     string top = c->getTopCell();
     if ( top == "" ) {
         cout << "Top Cell not defined!\n";
@@ -1597,18 +1817,34 @@ bool Size::gp(Circuit* c){
 	//double constrArea =  2.5;         //define todas as constraints na função
 	//double constrDelay = 1.13904e-11; //printGP
 	//string technology = "45nm";
-	string optimize = "delay";
-	string sizingType = "gate"; //gate or transistor
+	string optimize = c->getoptimizename(); //delay or area
+	string sizingType = c->getsizingtypename(); //gate or transistor
+	
+	//cout << optimize << endl;
+	//cout << sizingType << endl;
+
+	
 	//double Cload = 4*1.87367e-16;
 	//double restrCin = 3;
 	
 	//ofstream file( "gp.m" );
 
-	
-	ofstream script( "script.bat" );
-	ofstream simulate( "simulate.sh" );
-	ofstream copyarq( "copyarq.bat" );
+	//================== Cria os arquivos que serão escritos ===================
 	string top = c->getTopCell();
+	//ofstream script( "script.bat" );
+	ofstream script;
+	string scr = "script.bat";
+	script.open(scr.c_str()); // Write
+	
+	ofstream simulate;
+	string file_name = "simulate_" + top + ".sh";
+	simulate.open(file_name.c_str()); // Write
+	
+	//ofstream copyarq( "copyarq.bat" );
+	ofstream copyarq;
+	string copy_arq = "copyarq_" + top + ".bat";
+	copyarq.open(copy_arq.c_str()); // Write
+	
 	ofstream subckt;
 	string filename = "subckt_" + top + ".sp";
 	subckt.open(filename.c_str()); // Write
@@ -1667,7 +1903,7 @@ bool Size::gp(Circuit* c){
 			else
 				cells_it->second.getTrans(x).width = 0.09;
 			*/
-			cells_it->second.getTrans(x).length = 0.05;
+			//cells_it->second.getTrans(x).length = 0.05;
 			//cout << cells_it->second.getTrans(x).name << " " << " L=" << cells_it->second.getTrans(x).length << "U W=" << cells_it->second.getTrans(x).width << "U"<< endl;
 
 		}
@@ -1678,11 +1914,11 @@ bool Size::gp(Circuit* c){
 
 		//Calculate input capacitance of each cell
 		cells_it->second.calculateInputCapacitances();
-		cout << cells_it->first << "\n";
+		//cout << cells_it->first << "\n";
 		vector< pair<int,double> > &cins = cells_it->second.getCins();
-		for( int l=0; l< cins.size(); l++) {
-			cout << "\t"<< cins[l].second << endl;
-		} // end for
+		//for( int l=0; l< cins.size(); l++) {
+			//cout << "\t"<< cins[l].second << endl;
+		//} // end for
 		int k;
 		double cinport = 0;
         //cout << cells_it->first << "\n";
@@ -1723,7 +1959,7 @@ bool Size::gp(Circuit* c){
     } // end for
 	
 	
-	printGP(c, optimize ); // area, delay
+	printGP(c, optimize, sizingType ); // area, delay
 	
 	
 	/*
@@ -1984,20 +2220,28 @@ bool Size::gp(Circuit* c){
 	script.close();
 	file.close();
 	*/
-	script << "matlab -nodisplay -nosplash -nodesktop -wait -r gp_standard" << endl;
+	
+	script << "matlab -nodisplay -nosplash -nodesktop -wait -r gp_standard_" << top << endl;
 	script.close();
 	//USING WINDOWS
 	//cout << "passou 1" << endl;
-	system("chmod 755 script.bat");
+	//system("chmod 755 script.bat");
 	//cout << "passou 2" << endl;
-	system("script.bat");
+	//system("script.bat");
 
 	//USING MAC
-	system("chmod 755 /Users/gposser/Desktop/astran/xcode/build/Debug/script.bat");
-	system("/Users/gposser/Desktop/astran/xcode/build/Debug/script.bat");
-	
-	
+	system("chmod 755 /Users/gposser/Desktop/astran/xcode/build/Release/script.bat"); //descomentar +++++++++++++++++++++++++++++++++++
+	system("/Users/gposser/Desktop/astran/xcode/build/Release/script.bat");           //descomentar +++++++++++++++++++++++++++++++++++
 
+	
+	
+	
+	
+	//return true;
+	
+	
+	
+	
 	//cout << "passou 3" << endl;
 	while( !instancesFIFO.empty() ) {
 		string e = instancesFIFO.front();
@@ -2026,12 +2270,13 @@ bool Size::gp(Circuit* c){
 	//char buff[MAX];
 	vector<double> gateSize;
 	double dou = 0;
-	ifstream cin("arq.txt");
+	string arq = "arq_" + top + ".txt";
+	ifstream cin(arq.c_str());
 	int roundd = 0;
 	double minDelay;
 	double powerCircuit;
 	double produto;
-	if (sizingType == "gate"){
+	//if (sizingType == "gate"){
 	//ifstream fin("arq.txt");
 
 /*
@@ -2061,13 +2306,40 @@ bool Size::gp(Circuit* c){
 			gateSize.push_back(dou);
 			clsGP.assignValue(instances_it->first, dou);
 			
-			map<string,Inst>::iterator it = instances.find( instances_it->first );
-			if ( it != instances.end() ) {
-				// A var representa uma instancia.
-				it->second.m = dou;
-			
-			
-			} // end if
+			if ( sizingType == "gate" ){
+				map<string,Inst>::iterator it = instances.find( instances_it->first );
+				if ( it != instances.end() ) {
+					roundd = (dou*10)+0.5;
+					double f = roundd;
+					dou = f/10;
+					//cout << "ROUND: " << roundd << endl;
+					//dou = round(dou, 1);
+					it->second.m = dou;
+					cout << it->second.subCircuit << " = " << it->second.m << endl;
+				} // end if
+			} else if ( sizingType == "transistor" ){
+				string factor;
+				//map<string,Inst> &instances = topNetlist->getInstances();
+
+				for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ){
+					CellNetlst *netlist = c->getCellNetlst( it->second.subCircuit );
+					
+					it->second.m = 1;
+					vector<Trans> &trans = netlist->getTransistors();
+					int cont = 0;
+					for (vector<Trans>::iterator trans_it = trans.begin(); trans_it != trans.end(); trans_it++){
+						factor = "X" + ToString(cont) + "_" + it->first;
+						if (instances_it->first == factor ){
+							trans_it->width = dou;
+							//cout << instances_it->first << " = " << trans_it->width << endl;
+						} // end if 
+						cont++;
+					} // end for
+				} // end for
+			} else {
+				cout << "Sizing type must be gate or transistor" << endl;
+			}
+
 			
 		} // end for
 		
@@ -2094,12 +2366,14 @@ bool Size::gp(Circuit* c){
 			//cin >> powerCircuit;
 		//} // end if
 		
-		int cont = 0;
-		for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
-			instances_it->second.m = gateSize[cont];
-			cout << "M " << instances_it->first << " " << instances_it->second.m << endl;
-			cont++;
-		}//end for
+		if ( sizingType == "gate" ){
+			int cont = 0;
+			for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
+				instances_it->second.m = gateSize[cont];
+				//cout << "M " << instances_it->first << " " << instances_it->second.m << endl;
+				cont++;
+			}//end for
+		} // end if
 		
 		/*
 		if (optimize == "area"){ 
@@ -2127,7 +2401,7 @@ bool Size::gp(Circuit* c){
 			cout << "Potência do Circuito: " << powerCircuit << endl;
 		} // end if
 		*/
-	}//end if
+	//}//end if
 	
 	watch.stop();
 
@@ -2188,14 +2462,14 @@ bool Size::gp(Circuit* c){
 	simulate << "source /opt/ferramentas/scripts/setup.synopsys" << endl;
 	simulate << "elc -S script_" << top << endl;
 	simulate << "sh clear.sh" << endl;
-	simulate << "cp -rf lib_" << top << ".lib ../../sintese45nm/" << endl;
+	simulate << "mv lib_" << top << ".lib ~/Desktop/sintese45nm/Results_after_defesa/results350nm_minarea/" << endl;
 	simulate.close();
 	
 	copyarq << "scp setup_" << top << ".txt subckt_" << top << ".sp script_" << top;  
-	copyarq << " simulate.sh 143.54.10.45:~/Desktop/carac/carac_45nm/." << endl;
-	copyarq << "scp " << top << ".v 143.54.10.45:~/Desktop/sintese45nm/" << top << "_mapped.v" << endl;
+	copyarq << " simulate_" << top << ".sh lspramos@143.54.10.45:~/Desktop/carac/carac_45nm/min_delay_transistorsizing/350nm." << endl;
+	copyarq << "scp " << top << ".v lspramos@143.54.10.45:~/Desktop/sintese45nm/Results_after_defesa/results350nm_mindelay/transistorsizing/" << top << "_mapped.v" << endl;
 	copyarq.close();
-	printSetupCarac(*c, simulate, copyarq, top); 
+	printSetupCarac(*c, simulate, copyarq, top, sizingType); 
 	printScriptCarac(*c, top);
 	
 	//==================================#####===================================
@@ -2438,11 +2712,22 @@ bool Size::printSpiceCarac(Circuit& circuit, Inst &instance, ofstream &simulate,
 		netlist->getNetName(trans[x].drain) << " " << 
 		netlist->getNetName(trans[x].gate) << " " << 
 		netlist->getNetName(trans[x].source) << " ";
-		if(trans[x].type==PMOS) 
-			subckt << circuit.getVddNet() << " PMOS_VTG";
-		else
-			subckt << circuit.getGndNet() << " NMOS_VTG";
+		if (circuit.gettechnologyname() == "45nm") {
+			if(trans[x].type==PMOS) 
+				subckt << circuit.getVddNet() << " PMOS_VTG";
+			else
+				subckt << circuit.getGndNet() << " NMOS_VTG";
+		} // end if
+		
+		if (circuit.gettechnologyname() == "350nm") {
+			if(trans[x].type==PMOS) 
+				subckt << circuit.getVddNet() << " MODP";
+			else
+				subckt << circuit.getGndNet() << " MODN";
+		} // end if
+		
 		subckt << " L=" << trans[x].length << "E-6 W=" << trans[x].width*instance.m << "E-6"<< endl;	
+		trans[x].width = trans[x].width*instance.m;
 	} // end if
 	subckt << ".ENDS " << instance.subCircuit << "_" << instance.name << endl << endl;
 	
@@ -2455,26 +2740,37 @@ bool Size::printSpiceCarac(Circuit& circuit, Inst &instance, ofstream &simulate,
 }
 
 // -----------------------------------------------------------------------------
-bool Size::printSetupCarac(Circuit& circuit, ofstream &simulate, ofstream &copyarq, string &top){
+bool Size::printSetupCarac(Circuit& circuit, ofstream &simulate, ofstream &copyarq, string &top, const string &sizingType){
 		
 	//CellNetlst *netlist = circuit.getCellNetlst( instance.subCircuit );
-	
+	string technology = circuit.gettechnologyname();
 	ofstream setup;
 	string filename = "setup_" + top + ".txt";
 	setup.open(filename.c_str()); // Write
 	CellNetlst *netlist = circuit.getCellNetlst( circuit.getTopCell() );
     map<string,Inst> &instances = netlist->getInstances();
 	
+	if (technology == "45nm"){
+		setup << "//Setup file for simulation in 45nm\n" << endl;
+		 
+		setup << "Process typical {" << endl;
+		setup << "\tvoltage = 1.1; // as voltage" << endl;
+		setup << "\ttemp = 25 ; /* as temperature */" << endl; 
+		setup << "\tVtn = 0.15 ; // nmos Vt" << endl;
+		setup << "\tVtp = 0.15 ; // pmos Vt" << endl;
+		setup << "};\n" << endl;
+	} // end if
 	
-	setup << "//Setup file for simulation in 45nm\n" << endl;
-	 
-	setup << "Process typical {" << endl;
-	setup << "\tvoltage = 1.1; // as voltage" << endl;
-	setup << "\ttemp = 25 ; /* as temperature */" << endl; 
-	setup << "\tVtn = 0.15 ; // nmos Vt" << endl;
-	setup << "\tVtp = 0.15 ; // pmos Vt" << endl;
-	setup << "};\n" << endl;
-	
+	if (technology == "350nm"){
+		setup << "//Setup file for simulation in 45nm\n" << endl;
+		 
+		setup << "Process typical {" << endl;
+		setup << "\tvoltage = 3.3; // as voltage" << endl;
+		setup << "\ttemp = 25 ; /* as temperature */" << endl; 
+		setup << "\tVtn = 0.498 ; // nmos Vt" << endl;
+		setup << "\tVtp = 0.691 ; // pmos Vt" << endl;
+		setup << "};\n" << endl;
+	} // end if
 	
 	setup << "Signal std_cell {" << endl;
 	setup << "\tunit = REL ; // relative value" << endl;
@@ -2497,32 +2793,173 @@ bool Size::printSetupCarac(Circuit& circuit, ofstream &simulate, ofstream &copya
 	//setup << "\tload = 0.000400P 0.000800P 0.001600P 0.003200P 0.006400P;" << endl;
 	//setup << "} ;\n" << endl;
 	
-	for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
-		setup << "Index " <<  instances_it->second.subCircuit << "_" << instances_it->second.name << " {" << endl;
-		setup << "\tslew = 0.007500N 0.018750N 0.037500N 0.075000N 0.150000N 0.300000N 0.600000N ;" << endl;
-		setup << "\tload = ";
-		
-		if (instances_it->second.m <= 1.5)
-			setup << "0.000400P 0.000800P 0.001600P 0.003200P 0.006400P 0.012800P 0.025600P ;" << endl;
-		else if (instances_it->second.m <= 2.5 && instances_it->second.m > 1.5)
-			setup << "0.000400P 0.001600P 0.003200P 0.006400P 0.012800P 0.025600P 0.051200P ;" << endl;
-		else if (instances_it->second.m <= 3.5 && instances_it->second.m > 2.5)
-			setup << "0.000400P 0.002400P 0.004800P 0.009600P 0.019200P 0.038400P 0.076800P ;" << endl;
-		else if (instances_it->second.m <= 6 && instances_it->second.m > 3.5)
-			setup << "0.000400P 0.003200P 0.006400P 0.012800P 0.025600P 0.051200P 0.102400P ;" << endl;
-		else if (instances_it->second.m <= 12 && instances_it->second.m > 6)	
-			setup << "0.000400P 0.006400P 0.012800P 0.025600P 0.051200P 0.102400P 0.204800P ;" << endl;
-		else if (instances_it->second.m <= 24 && instances_it->second.m > 12)
-			setup << "0.000400P 0.012800P 0.025600P 0.051200P 0.102400P 0.204800P 0.409600P ;" << endl;
-		else if (instances_it->second.m > 24)
-			setup << "0.000400P 0.025600P 0.051200P 0.102400P 0.204800P 0.409600P 0.819200P;" << endl;
+	if (technology == "45nm"){
+		if ( sizingType == "gate" ){
+			for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
+				setup << "Index " <<  instances_it->second.subCircuit << "_" << instances_it->second.name << " {" << endl;
+				setup << "\tslew = 0.007500N 0.018750N 0.037500N 0.075000N 0.150000N 0.300000N 0.600000N ;" << endl;
+				setup << "\tload = ";
 				
-		setup << "} ;\n" << endl;
-	}//end for
+				if (instances_it->second.m <= 1.5)
+					setup << "0.000400P 0.000800P 0.001600P 0.003200P 0.006400P 0.012800P 0.025600P ;" << endl;
+				else if (instances_it->second.m <= 2.5 && instances_it->second.m > 1.5)
+					setup << "0.000400P 0.001600P 0.003200P 0.006400P 0.012800P 0.025600P 0.051200P ;" << endl;
+				else if (instances_it->second.m <= 3.5 && instances_it->second.m > 2.5)
+					setup << "0.000400P 0.002400P 0.004800P 0.009600P 0.019200P 0.038400P 0.076800P ;" << endl;
+				else if (instances_it->second.m <= 6 && instances_it->second.m > 3.5)
+					setup << "0.000400P 0.003200P 0.006400P 0.012800P 0.025600P 0.051200P 0.102400P ;" << endl;
+				else if (instances_it->second.m <= 10 && instances_it->second.m > 6)	
+					setup << "0.000400P 0.006400P 0.012800P 0.025600P 0.051200P 0.102400P 0.204800P ;" << endl;
+				else if (instances_it->second.m <= 14 && instances_it->second.m > 10)	
+					setup << "0.000400P 0.009600P 0.019200P 0.038400P 0.076800P 0.153600P 0.307200P ;" << endl;
+				else if (instances_it->second.m <= 18 && instances_it->second.m > 14)
+					setup << "0.000400P 0.012800P 0.025600P 0.051200P 0.102400P 0.204800P 0.409600P ;" << endl;
+				else if (instances_it->second.m <= 22 && instances_it->second.m > 18)
+					setup << "0.000400P 0.016000P 0.032000P 0.064000P 0.128000P 0.256000P 0.512000P ;" << endl;
+				else if (instances_it->second.m <= 26 && instances_it->second.m > 22)
+					setup << "0.000400P 0.019200P 0.038400P 0.076800P 0.153600P 0.307200P 0.614400P ;" << endl;
+				else if (instances_it->second.m > 26)
+					setup << "0.000400P 0.025600P 0.051200P 0.102400P 0.204800P 0.409600P 0.819200P;" << endl;
+						
+				setup << "} ;\n" << endl;
+			}//end for
+		} else if ( sizingType == "transistor" ){
+			double scalefactor;
+			for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
+				CellNetlst *netlist = circuit.getCellNetlst( instances_it->second.subCircuit );
+				scalefactor = 0;
+				vector<Trans> &trans = netlist->getTransistors();
 
-	setup << "Group INV_X1 {" << endl;
-	setup << "\tCELL = *INV_X1 ;" << endl;
-	setup << "} ;\n" << endl;	
+				for (vector<Trans>::iterator trans_it = trans.begin(); trans_it != trans.end(); trans_it++){
+					if (trans_it->type == 0){
+						scalefactor+= trans_it->width/0.135;
+					} else if (trans_it->type == 1){
+						scalefactor+= trans_it->width/0.09;
+					} else{
+						cout << "Transistor type is not defined" << endl;
+					} // end else
+				} // end for
+				scalefactor = scalefactor/trans.size();
+				//cout << "Escalefactor = " << scalefactor << endl;
+				
+				setup << "Index " <<  instances_it->second.subCircuit << "_" << instances_it->second.name << " {" << endl;
+				setup << "\tslew = 0.007500N 0.018750N 0.037500N 0.075000N 0.150000N 0.300000N 0.600000N ;" << endl;
+				setup << "\tload = ";
+				
+				if (scalefactor <= 1.5)
+					setup << "0.000400P 0.000800P 0.001600P 0.003200P 0.006400P 0.012800P 0.025600P ;" << endl;
+				else if (scalefactor <= 2.5 && scalefactor > 1.5)
+					setup << "0.000400P 0.001600P 0.003200P 0.006400P 0.012800P 0.025600P 0.051200P ;" << endl;
+				else if (scalefactor <= 3.5 && scalefactor > 2.5)
+					setup << "0.000400P 0.002400P 0.004800P 0.009600P 0.019200P 0.038400P 0.076800P ;" << endl;
+				else if (scalefactor <= 6 && scalefactor > 3.5)
+					setup << "0.000400P 0.003200P 0.006400P 0.012800P 0.025600P 0.051200P 0.102400P ;" << endl;
+				else if (scalefactor <= 10 && scalefactor > 6)	
+					setup << "0.000400P 0.006400P 0.012800P 0.025600P 0.051200P 0.102400P 0.204800P ;" << endl;
+				else if (scalefactor <= 14 && scalefactor > 10)	
+					setup << "0.000400P 0.009600P 0.019200P 0.038400P 0.076800P 0.153600P 0.307200P ;" << endl;
+				else if (scalefactor <= 18 && scalefactor > 14)
+					setup << "0.000400P 0.012800P 0.025600P 0.051200P 0.102400P 0.204800P 0.409600P ;" << endl;
+				else if (scalefactor <= 22 && scalefactor > 18)
+					setup << "0.000400P 0.016000P 0.032000P 0.064000P 0.128000P 0.256000P 0.512000P ;" << endl;
+				else if (scalefactor <= 26 && scalefactor > 22)
+					setup << "0.000400P 0.019200P 0.038400P 0.076800P 0.153600P 0.307200P 0.614400P ;" << endl;
+				else if (scalefactor > 26)
+					setup << "0.000400P 0.025600P 0.051200P 0.102400P 0.204800P 0.409600P 0.819200P;" << endl;
+						
+				setup << "} ;\n" << endl;
+			}//end for
+
+		} else {
+			cout << "Sizing type must be transistor or gate." << endl;
+		}
+	} // end if
+	
+	if (technology == "350nm"){
+		if ( sizingType == "gate" ){
+			for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
+				setup << "Index " <<  instances_it->second.subCircuit << "_" << instances_it->second.name << " {" << endl;
+				if (instances_it->second.m <= 2.5)
+					setup << "\tslew = 0.050N 0.500N 1.000N 2.000N ;" << endl;
+				else
+					setup << "\tslew = 0.500N 1.000N 2.000N 3.000N ;" << endl;
+				
+				if (instances_it->second.m <= 1.5)
+					setup << "\tload = 0.001000000P 0.005000000P 0.020000000P 0.080000000P 0.320000000P ;" << endl;
+				else if (instances_it->second.m <= 2.5 && instances_it->second.m > 1.5)
+					setup << "\tload = 0.002000000P 0.010000000P 0.040000000P 0.160000000P 0.640000000P ;" << endl;
+				else if (instances_it->second.m <= 3.5 && instances_it->second.m > 2.5)
+					setup << "\tload = 0.003000000P 0.015000000P 0.060000000P 0.240000000P 0.960000000P ;" << endl;
+				else if (instances_it->second.m <= 5 && instances_it->second.m > 3.5)
+					setup << "\tload = 0.004000000P 0.020000000P 0.080000000P 0.320000000P 1.280000000P ;" << endl;
+				else if (instances_it->second.m <= 7 && instances_it->second.m > 5)	
+					setup << "\tload = 0.006000000P 0.030000000P 0.120000000P 0.480000000P 1.920000000P ;" << endl;
+				else if (instances_it->second.m <= 9 && instances_it->second.m > 7)	
+					setup << "\tload = 0.008000000P 0.040000000P 0.160000000P 0.640000000P 2.560000000P ;" << endl;
+				else if (instances_it->second.m <= 11 && instances_it->second.m > 9)
+					setup << "\tload = 0.010000000P 0.050000000P 0.200000000P 0.800000000P 3.200000000P ;" << endl;
+				else if (instances_it->second.m <= 13.5 && instances_it->second.m > 11)
+					setup << "\tload = 0.012000000P 0.060000000P 0.240000000P 0.960000000P 3.840000000P ;" << endl;
+				else if (instances_it->second.m > 13.5)
+					setup << "\tload = 0.015000000P 0.075000000P 0.300000000P 1.200000000P 4.800000000P ;" << endl;
+						
+				setup << "} ;\n" << endl;
+			}//end for
+		} else if ( sizingType == "transistor" ){
+			double scalefactor;
+			for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
+				CellNetlst *netlist = circuit.getCellNetlst( instances_it->second.subCircuit );
+				scalefactor = 0;
+				vector<Trans> &trans = netlist->getTransistors();
+
+				for (vector<Trans>::iterator trans_it = trans.begin(); trans_it != trans.end(); trans_it++){
+					if (trans_it->type == 0){
+						scalefactor+= trans_it->width/1.6;
+					} else if (trans_it->type == 1){
+						scalefactor+= trans_it->width/1;
+					} else{
+						cout << "Transistor type is not defined" << endl;
+					} // end else
+				} // end for
+				scalefactor = scalefactor/trans.size();
+
+				setup << "Index " <<  instances_it->second.subCircuit << "_" << instances_it->second.name << " {" << endl;
+				if (instances_it->second.m <= 2.5)
+					setup << "\tslew = 0.050N 0.500N 1.000N 2.000N ;" << endl;
+				else
+					setup << "\tslew = 0.500N 1.000N 2.000N 3.000N ;" << endl;
+				
+				if (scalefactor <= 1.5)
+					setup << "\tload = 0.001000000P 0.005000000P 0.020000000P 0.080000000P 0.320000000P ;" << endl;
+				else if (scalefactor <= 2.5 && scalefactor > 1.5)
+					setup << "\tload = 0.002000000P 0.010000000P 0.040000000P 0.160000000P 0.640000000P ;" << endl;
+				else if (scalefactor <= 3.5 && scalefactor > 2.5)
+					setup << "\tload = 0.003000000P 0.015000000P 0.060000000P 0.240000000P 0.960000000P ;" << endl;
+				else if (scalefactor <= 5 && scalefactor > 3.5)
+					setup << "\tload = 0.004000000P 0.020000000P 0.080000000P 0.320000000P 1.280000000P ;" << endl;
+				else if (scalefactor <= 7 && scalefactor > 5)	
+					setup << "\tload = 0.006000000P 0.030000000P 0.120000000P 0.480000000P 1.920000000P ;" << endl;
+				else if (scalefactor <= 9 && scalefactor > 7)	
+					setup << "\tload = 0.008000000P 0.040000000P 0.160000000P 0.640000000P 2.560000000P ;" << endl;
+				else if (scalefactor <= 11 && scalefactor > 9)
+					setup << "\tload = 0.010000000P 0.050000000P 0.200000000P 0.800000000P 3.200000000P ;" << endl;
+				else if (scalefactor <= 13.5 && scalefactor > 11)
+					setup << "\tload = 0.012000000P 0.060000000P 0.240000000P 0.960000000P 3.840000000P ;" << endl;
+				else if (scalefactor> 13.5)
+					setup << "\tload = 0.015000000P 0.075000000P 0.300000000P 1.200000000P 4.800000000P ;" << endl;
+						
+				setup << "} ;\n" << endl;
+			}//end for
+
+		} else {
+			cout << "Sizing type must be transistor or gate." << endl;
+		}
+	} // end if
+	
+	
+	//setup << "Group INV_X1 {" << endl;
+	//setup << "\tCELL = *INV_X1 ;" << endl;
+	//setup << "} ;\n" << endl;	
 	
 	
 	for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
@@ -2564,10 +3001,11 @@ bool Size::printSetupCarac(Circuit& circuit, ofstream &simulate, ofstream &copya
 	setup << "} ;\n" << endl;
 	
 	setup << "set index (best,typical,worst) {" << endl;
-	setup << "Group (INV_X1) = INV_X1 ;" << endl;
+	//setup << "Group (INV_X1) = INV_X1 ;" << endl;
 	for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
 		setup << "Group (" << instances_it->second.subCircuit << "_" << instances_it->second.name << ") = " << instances_it->second.subCircuit << "_" << instances_it->second.name << " ;" << endl;
 	} // end for
+	
 	setup << "} ;\n" << endl;
 	
 	setup.close();

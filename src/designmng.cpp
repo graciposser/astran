@@ -773,8 +773,21 @@ int DesignMng::readCommand(string cmd){
 				 */
 				
 				//printGP parameters SET
+			/*	
+			case CHANGE_OPTIMIZE:
+				circuit->setoptimize(words[2].c_str());
+				ret=1;
+				break;	
+			*/	
 			case SET_TECHNOLOGY:
-				circuit->settechnology(words[2].c_str());
+				//string sname =words[2];
+				//if(words[2].c_str() == "45nm" ||words[2].c_str() == "350nm" )
+				 // circuit->settechnology(words[2].c_str());
+				//else
+				 //  if(words[2].c_str() == "delay" ||words[2].c_str() == "area" )
+				cout << words[2].c_str() << "HHHHHHHH";
+					   circuit->setoptimize(words[2].c_str());
+					  // cout << "DDDDDOOOOONNNEEE";
 				ret=1;
 				break;	
 				

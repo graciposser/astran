@@ -81,7 +81,7 @@ enum command_name {
 	SIZE_FO4,SIZE_GP,
 	
 	//Parameters PrintGP
-	SET_TECHNOLOGY, 
+	SET_TECHNOLOGY,// CHANGE_OPTIMIZE,
     SET_CLOAD, SET_CONSTRAREA, SET_CONSTRDELAY, SET_CONSTRCIN, 
 	
 	// Elmore - 2
