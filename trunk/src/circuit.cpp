@@ -19,11 +19,13 @@ Circuit::Circuit(){
 	topNetlist =NULL;
 	
 	//parameters to PrintGP
-	technology ="45nm"; 
-	Cload = 6*1.434879e-16;
+	optimize = "delay";
+	sizingtype = "gate";
+	technology ="350nm"; 
+	Cload = 1.3273e-14 ; //8.609274e-16 (45nm)
 	constrArea= 2000;
-	constrDelay= 4.29113e-10;
-	constrCin = 4;
+	constrDelay= 4.29113e-9;
+	constrCin = 15; //4 (45nm)
 	
 }
 

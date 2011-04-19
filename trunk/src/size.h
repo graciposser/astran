@@ -56,22 +56,22 @@ private:
 	bool printSpiceSimulation(Circuit& circuit, Inst &instance, ofstream &simulate, ofstream &copyarq, string &top);
 	bool printSpiceCarac(Circuit& circuit, Inst &instance, ofstream &simulate, ofstream &copyarq, string &top, ofstream &subckt);
 	void printAlter(Inst &instance, ofstream &file, Circuit &circuit);
-	bool printSetupCarac(Circuit& circuit, ofstream &simulate, ofstream &copyarq, string &top);
+	bool printSetupCarac(Circuit& circuit, ofstream &simulate, ofstream &copyarq, string &top, const string &sizingType );
 	bool printScriptCarac(Circuit& circuit, string &top);
 
 	void printGP_Constants( GeometricProgram &gp, const string &technology, const double parameterCload, const double parameterMaxArea, const double parameterDelay, const double parameterMaxCin );
-	void printGP_Instance( GeometricProgram &gp, RCTranslator &rc, Circuit * circuit, const string &instanceName );
-	void printGP_InstanceHeader( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName );
+	void printGP_Instance( GeometricProgram &gp, RCTranslator &rc, Circuit * circuit, const string &instanceName, const string &sizingType );
+	void printGP_InstanceHeader( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName, const string &sizingType );
 	void printGP_InstanceRC( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName );
 	void printGP_InstanceFooter( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName );
-	void printGP_InstanceCin( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName );
-	void printGP_InstanceCinConstraints( GeometricProgram &gp, Circuit * circuit );
+	void printGP_InstanceCin( GeometricProgram &gp, const RCTranslator &rc, const string &instanceName, const string &sizingType );
+	void printGP_InstanceCinConstraints( GeometricProgram &gp, Circuit * circuit, const string &sizingType );
 	void printGP_InstanceCload( GeometricProgram &gp, Circuit * circuit, const string &instanceName );
 	void printGP_CircuitPower( GeometricProgram &gp, Circuit * circuit );
 	void printGP_CircuitArea( GeometricProgram &gp, Circuit * circuit );
 	void printGP_CircuitDelay( GeometricProgram &gp, Circuit * circuit );
 	void printGP_CircuitDelayWalker( GeometricProgram &gp, Circuit * circuit, Inst *inst );
-	void printGP(Circuit * circuit, const string &target);
+	void printGP(Circuit * circuit, const string &target, const string &sizingType );
 	class linev{
 		public: vector <string> parts;			
 	};

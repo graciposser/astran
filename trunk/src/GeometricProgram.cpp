@@ -6,6 +6,7 @@
 #include "GeometricProgram.h"
 
 // [TODO] Criar templete pra createXXX();
+
 // [TODO] Verificar se nome já existe.
 // [TODO] Verificar se os nomes são válidos. Reserver os iniando com underline
 //        para variáveis internas.
@@ -61,9 +62,10 @@ ConstantMul * GeometricProgram::createConstantMul( const string &name ) {
 // -----------------------------------------------------------------------------
 
 Variable * GeometricProgram::createVariable( const string &name ) {
-	if ( name == "" )
-		throw GeometricProgramException( "Variables must be named." );
-
+	//if ( name == "" ){
+		//cout << "Redefinicao de variavel.";
+		//throw GeometricProgramException( "Variables must be named." );
+	//} // end if
 	Variable * element = new Variable( name );
 	registerPosynomialType( element );
 	return element;
