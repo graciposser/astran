@@ -134,6 +134,42 @@ bool Circuit::promoteCell2Top(string cellName){
  cells_it->second.print();
  }
  */
+ 
+bool Circuit::setTopCell(string t){
+	int n;
+	if(cellNetlsts.find(t)==cellNetlsts.end()){
+		cout << "ERROR: Top not found: " << t << endl;
+		return false;
+	}else{
+		topCell=t;
+		topNetlist=getCellNetlst(topCell);
+		map<string,Inst>& instances=cellNetlsts[t].getInstances();
+		for(map<string,Inst>::iterator instance_it=instances.begin(); instance_it!=instances.end(); ++instance_it){
+			if(instance_it->second.m!=1 && cellNetlsts.find(instance_it->second.subCircuit+"_"+intToStr(instance_it->second.m))==cellNetlsts.end()){
+				cout << "Removing resized cell from top hierarchy: " << instance_it->second.subCircuit << endl;
+				CellNetlst newCell;
+				newCell.setName(instance_it->second.subCircuit+"_"+intToStr(instance_it->second.m));
+				map<string, CellNetlst>::iterator target=cellNetlsts.find(instance_it->second.subCircuit);
+				vector<string> targetIOs;
+				if(target==cellNetlsts.end()){
+					cout << "ERROR: Resized cell not found: " << instance_it->second.subCircuit << endl;
+					return false;
+				}else{
+					for(n=0;n<target->second.getInouts().size();++n){
+						newCell.insertInOut(target->second.getInout(n));
+						targetIOs.push_back(target->second.getInout(n));
+					}
+				}
+				newCell.insertInstance(instance_it->first, instance_it->second.subCircuit, targetIOs, instance_it->second.m); // Insert a new cell instance
+				instance_it->second.m=1;
+				instance_it->second.subCircuit=newCell.getName();
+				insertCell(newCell);
+			}
+		}		
+	}
+	return true;
+}
+ 
 
 CellNetlst Circuit::getFlattenCell(string name){
 	CellNetlst tmp;
