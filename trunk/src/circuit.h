@@ -70,7 +70,7 @@ class Circuit {
 	void setconstrCin(double n){ constrCin=n;};
 
 	void clear();
-	void setTopCell(string cellName){topCell=cellName;topNetlist=getCellNetlst(topCell);};
+	bool setTopCell(string cellName);
 	string getTopCell(){return topCell;}
 	CellNetlst *getTopNetlist() { return topNetlist; }
 	void setVddNet(string s){vddNet=s;};

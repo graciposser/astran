@@ -2299,7 +2299,7 @@ bool Size::gp(Circuit* c){
 			gateSize.push_back(dou);
 		}
 */
-
+		
 		const map<string,Variable*> &vars = clsGP.getVariableMap();
 		for (map<string,Variable*>::const_iterator instances_it = vars.begin(); instances_it != vars.end(); instances_it++){
 			cin >> dou;
@@ -2374,6 +2374,8 @@ bool Size::gp(Circuit* c){
 				cont++;
 			}//end for
 		} // end if
+		
+		c->setTopCell(top);
 		
 		/*
 		if (optimize == "area"){ 
