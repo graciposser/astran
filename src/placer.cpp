@@ -454,9 +454,17 @@ bool Placer::setArea(int n, float u){
 	int tmp=0;
 	
 	map<string, Instance>::iterator cellsInst_it;
-	for(cellsInst_it=currentCircuit->getLayout(currentCircuit->getTopCell() + "_PL")->getInstances()->begin();cellsInst_it!=currentCircuit->getLayout(currentCircuit->getTopCell() + "_PL")->getInstances()->end();cellsInst_it++)
-		tmp+= currentCircuit->getLayout(cellsInst_it->second.getTargetCell())->getWidth()/(currentCircuit->getHPitch()*currentCircuit->getRules()->getScale());
+	for(cellsInst_it=currentCircuit->getLayout(currentCircuit->getTopCell() + "_PL")->getInstances()->begin();cellsInst_it!=currentCircuit->getLayout(currentCircuit->getTopCell() + "_PL")->getInstances()->end();cellsInst_it++){
+		if(currentCircuit->getLayout(cellsInst_it->second.getTargetCell()))
+			tmp+= currentCircuit->getLayout(cellsInst_it->second.getTargetCell())->getWidth()/(currentCircuit->getHPitch()*currentCircuit->getRules()->getScale());
+		else {
+			cout << "Error: Cell layout not found:" << cellsInst_it->first << endl;
+			return false;
+		}
+
+	}
 	nrSites = ceil((tmp/(u/100.0f))/rows.size());
+
 	if(nrSites){
 		utilization= 100*(float(tmp)/(nrSites*rows.size()));
 		cout << "Setting place area to " << rows.size()*currentCircuit->getRowHeight()*currentCircuit->getVPitch() << " x " <<  nrSites*currentCircuit->getHPitch() << " (HxW)um  with " << getUtilization() << "% of utilization" << endl;
@@ -466,7 +474,7 @@ bool Placer::setArea(int n, float u){
 		return false;
 	}
 }
-
+	
 bool Placer::readMangoParrotPlacement(string fileName) {
 	ifstream file(fileName.c_str()); // Read
 	if ((!file)){
@@ -622,19 +630,21 @@ bool Placer::writeBookshelfFiles(string fileName, bool dotPLOnly){
 	for(vector<t_net>::iterator nets_it=nets.begin(); nets_it!=nets.end(); nets_it++){
 		if(nets_it->name!=currentCircuit->getVddNet() && nets_it->name!=currentCircuit->getGndNet()){
 			num_pins += nets_it->insts.size();
-			num_nets++;
+			if(nets_it->insts.size()!=0) num_nets++;  //fix for nets with size == 0 
 		}
 	}
+
 	fnets << "NumNets : " << num_nets << "\n";
 	fnets << "NumPins : " << num_pins << "\n";
-	
 	for(vector<t_net>::iterator nets_it=nets.begin(); nets_it!=nets.end(); nets_it++){
 		if(nets_it->name!=currentCircuit->getVddNet() && nets_it->name!=currentCircuit->getGndNet()){
 			if(currentCircuit->getInterfaces()->find(nets_it->name)!=currentCircuit->getInterfaces()->end()){
 				fnets << "NetDegree : " << nets_it->insts.size()+1 << "\n";
 				fnets << "    " << nets_it->name << "  B\n";
-			}else
+			}else if(nets_it->insts.size()!=0){ //fix for nets with size == 0 
 				fnets << "NetDegree : " << nets_it->insts.size() << "\n";
+				// fnets << "#     " << nets_it->name << "  B\n";
+			}
 			for(list<t_inst>::iterator nodes_it=nets_it->insts.begin(); nodes_it!=nets_it->insts.end(); nodes_it++)
 				fnets << "    " << nodes_it->targetCellInst << "  B\n";
 		}

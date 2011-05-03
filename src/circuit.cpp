@@ -23,9 +23,9 @@ Circuit::Circuit(){
 	sizingtype = "gate";
 	technology ="350nm"; 
 	Cload = 1.3273e-14 ; //8.609274e-16 (45nm)
-	constrArea= 2000;
+	constrArea= 1;
 	constrDelay= 4.29113e-9;
-	constrCin = 15; //4 (45nm)
+	constrCin = 4; //4 (45nm)
 	
 }
 
@@ -146,7 +146,7 @@ bool Circuit::setTopCell(string t){
 		map<string,Inst>& instances=cellNetlsts[t].getInstances();
 		for(map<string,Inst>::iterator instance_it=instances.begin(); instance_it!=instances.end(); ++instance_it){
 			if(instance_it->second.m!=1 && cellNetlsts.find(instance_it->second.subCircuit+"_"+intToStr(instance_it->second.m))==cellNetlsts.end()){
-				cout << "Removing resized cell from top hierarchy: " << instance_it->second.subCircuit << endl;
+				//cout << "Removing resized cell from top hierarchy: " << instance_it->second.subCircuit << endl;
 				CellNetlst newCell;
 				newCell.setName(instance_it->second.subCircuit+"_"+intToStr(instance_it->second.m));
 				map<string, CellNetlst>::iterator target=cellNetlsts.find(instance_it->second.subCircuit);
