@@ -2222,6 +2222,7 @@ bool Size::gp(Circuit* c){
 	*/
 	
 	script << "matlab -nodisplay -nosplash -nodesktop -wait -r gp_standard_" << top << endl;
+	//script << "matlab -nosplash -wait -r gp_standard_" << top << endl;
 	script.close();
 	//USING WINDOWS
 	//cout << "passou 1" << endl;
@@ -2489,7 +2490,7 @@ bool Size::gp(Circuit* c){
 	//cout<< top <<"\n";
 	//CellNetlst *netlist = circuit->getCellNetlst( circuit->getTopCell() );
 
-	cout << "  Criando arquivo verilog a partir do Top Cell..";
+	//cout << "  Criando arquivo verilog a partir do Top Cell..";
 	 
 	vector <string> input;
 	vector <string> output;
