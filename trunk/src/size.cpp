@@ -1090,21 +1090,46 @@ void Size::printGP(Circuit * circuit, const string &target, const string &sizing
 			string scalefactor;
 			
 			for ( map<string,Inst>::iterator it = instances.begin(); it != instances.end(); it++ ) {
-				for ( int i=0; i<rc.getNumTransistors(); i++){
-					scalefactor = "X" + ToString(i) + "_" + it->first;
-					Variable * instscale = clsGP.requestVariable( scalefactor );
-					switch ( rc.getTransistorType(i) ) {
-						case RCTranslator::PMOS: 
-							clsGP.addInequalityConstraint( clsGP.requestConstantType( "Xp" ), instscale );
-							clsGP.addInequalityConstraint( instscale, clsGP.createConstantMul( clsGP.requestConstantType("Xmax"), clsGP.requestConstantType("Xp") ) );
-						break;
-						case RCTranslator::NMOS: 
-							clsGP.addInequalityConstraint( clsGP.requestConstantType( "Xn" ), instscale ); 
-							clsGP.addInequalityConstraint( instscale, clsGP.createConstantMul( clsGP.requestConstantType("Xmax"), clsGP.requestConstantType("Xn") ) );
-						break;
-					} // end swtich
-				}//end for
-			} // end for
+				//cout << "Número de transistores do gate " << it-> first << " = " << rc.getNumTransistors() << endl; 
+				//for ( int i=0; i<rc.getNumTransistors(); i++){
+					//scalefactor = "X" + ToString(i) + "_" + it->first;
+					//cout << scalefactor << endl;
+					//Variable * instscale = clsGP.requestVariable( scalefactor );
+					string name;
+				
+					CellNetlst * netlist = circuit->getCellNetlst( it->second.subCircuit );
+
+					vector<Trans> &trans = netlist->getTransistors();
+					//cout << "Número de transistores do gate " << it-> first << " = " << trans.size() << endl;
+					for (int i=0; i<trans.size(); i++ ){
+						name = "X" + ToString(i) + "_" + it->first;
+						//clsGP.createVariable ( name );
+						if (trans[i].type == PMOS){
+							clsGP.addInequalityConstraint( clsGP.requestConstantType( "Xp" ), clsGP.requestVariable( name ) );
+							clsGP.addInequalityConstraint( clsGP.requestVariable( name ), clsGP.createConstantMul( clsGP.requestConstantType("Xmax"), clsGP.requestConstantType("Xp") ) );
+						} else if (trans[i].type == NMOS){
+							clsGP.addInequalityConstraint( clsGP.requestConstantType( "Xn" ), clsGP.requestVariable( name ) );
+							clsGP.addInequalityConstraint( clsGP.requestVariable( name ), clsGP.createConstantMul( clsGP.requestConstantType("Xmax"), clsGP.requestConstantType("Xn") ) );
+						} else{
+							cout << "Transistor type is not defined" << endl;
+						} // end else
+
+					} // end for
+				} // end for
+					
+					
+					//switch ( rc.getTransistorType(i) ) {
+						//case RCTranslator::PMOS: 
+							//clsGP.addInequalityConstraint( clsGP.requestConstantType( "Xp" ), clsGP.requestVariable( scalefactor ) );
+							//clsGP.addInequalityConstraint( instscale, clsGP.createConstantMul( clsGP.requestConstantType("Xmax"), clsGP.requestConstantType("Xp") ) );
+						//break;
+						//case RCTranslator::NMOS: 
+							//clsGP.addInequalityConstraint( clsGP.requestConstantType( "Xn" ), clsGP.requestVariable( scalefactor ) ); 
+							//clsGP.addInequalityConstraint( instscale, clsGP.createConstantMul( clsGP.requestConstantType("Xmax"), clsGP.requestConstantType("Xn") ) );
+						//break;
+					//} // end swtich
+				//}//end for
+			//} // end for
 		} else {
 			cout << "Sizing type must be transistor or gate." << endl;
 		}
@@ -1153,19 +1178,21 @@ void Size::printGP(Circuit * circuit, const string &target, const string &sizing
 		
 		ofstream file;
 		
-		file.open( "gp_generalized.m" );
+		string fil_gen = "gp_generalized_transSiz_minarea_" + top + ".m";
+		file.open( fil_gen.c_str() );
 		clsGP.print( file );
 		file.close();
 
 		StandardGeometricProgram sgp;
 		clsGP.ungeneralize();
 
-		file.open( "gp_ungeneralized.m" );
+		string fil_ungen = "gp_ungeneralized_transSiz_minarea_" + top + ".m";
+		file.open( fil_ungen.c_str() );
 		clsGP.print( file );
 		file.close();
 
 		clsGP.standardize( sgp );
-		string fil = "gp_standard_" + top + ".m";
+		string fil = "gp_standard_transSiz_minarea_" + top + ".m";
 		file.open( fil.c_str() );
 		sgp.print( file );
 		file << "assign(solution);" << endl;
@@ -2221,8 +2248,8 @@ bool Size::gp(Circuit* c){
 	file.close();
 	*/
 	
-	script << "matlab -nodisplay -nosplash -nodesktop -wait -r gp_standard_" << top << endl;
-	//script << "matlab -nosplash -wait -r gp_standard_" << top << endl;
+	script << "matlab -nodisplay -nosplash -nodesktop -wait -r gp_standard_transSiz_minarea_" << top << endl;
+	//script << "matlab -nosplash -wait -r gp_standard_transSiz_minarea_" << top << endl;
 	script.close();
 	//USING WINDOWS
 	//cout << "passou 1" << endl;
@@ -2316,7 +2343,7 @@ bool Size::gp(Circuit* c){
 					//cout << "ROUND: " << roundd << endl;
 					//dou = round(dou, 1);
 					it->second.m = dou;
-					cout << it->second.subCircuit << " = " << it->second.m << endl;
+					//cout << it->second.subCircuit << " = " << it->second.m << endl;
 				} // end if
 			} else if ( sizingType == "transistor" ){
 				string factor;
@@ -2465,12 +2492,12 @@ bool Size::gp(Circuit* c){
 	simulate << "source /opt/ferramentas/scripts/setup.synopsys" << endl;
 	simulate << "elc -S script_" << top << endl;
 	simulate << "sh clear.sh" << endl;
-	simulate << "mv lib_" << top << ".lib ~/Desktop/sintese45nm/Results_after_defesa/results350nm_minarea/" << endl;
+	simulate << "mv lib_" << top << ".lib ~/Desktop/sintese45nm/Results_after_defesa/results45nm_minarea/transistorsizing/" << endl;
 	simulate.close();
 	
 	copyarq << "scp setup_" << top << ".txt subckt_" << top << ".sp script_" << top;  
-	copyarq << " simulate_" << top << ".sh lspramos@143.54.10.45:~/Desktop/carac/carac_45nm/min_delay_transistorsizing/350nm." << endl;
-	copyarq << "scp " << top << ".v lspramos@143.54.10.45:~/Desktop/sintese45nm/Results_after_defesa/results350nm_mindelay/transistorsizing/" << top << "_mapped.v" << endl;
+	copyarq << " simulate_" << top << ".sh lspramos@143.54.10.45:~/Desktop/carac/carac_45nm/transistorSizing/min_area/" << endl;
+	copyarq << "scp " << top << ".v lspramos@143.54.10.45:~/Desktop/sintese45nm/Results_after_defesa/results45nm_minarea/transistorSizing/" << top << "_mapped.v" << endl;
 	copyarq.close();
 	printSetupCarac(*c, simulate, copyarq, top, sizingType); 
 	printScriptCarac(*c, top);
