@@ -854,11 +854,13 @@ void Size::printGP_CircuitDelayWalker( GeometricProgram &gp, Circuit * circuit, 
 				}//end if
 			}// end if
 		}//end for
-
+		
+		//cout << "Caminho: " << inst->name << " ";
 		if ( drivers.size() > 0 ) {
 			Max * inputDelay = gp.createMax();
 			for ( int i = 0; i < drivers.size(); i++ ){
 				inputDelay->addTerm( gp.requestPosynomialType( "D_" + drivers[i]->name ) );
+				//cout << drivers[i]->name << "\t";
 				//cout << "Driver: " << drivers[i]->name << " " << drivers[i]->subCircuit << endl;
 			}
 			gp.createSum( "D_" + inst->name, gp.requestPosynomialType( "delay" + inst->name ), inputDelay );
@@ -890,8 +892,10 @@ void Size::printGP_CircuitDelay( GeometricProgram &gp, Circuit * circuit ) {
 			continue;
 
 		t_net &net = topNetlist->getNet(it->first);
+		//cout << "Net" << net.name << "\t";
 		
 		Inst * driver = findDriver(circuit, circuit->getTopNetlist(), net );
+		cout << "Driver" << driver->name << "\t";
 		if ( driver )
 			printGP_CircuitDelayWalker( gp, circuit, driver );
 	} // end for
@@ -1611,7 +1615,7 @@ bool Size::fanout4(Circuit* c){
 	double Xp = 0.135;
 	double cellArea = 0;
     queue<string> instancesFIFO;
-	string technology = "350nm";
+	string technology = "45nm";
     string top = c->getTopCell();
     if ( top == "" ) {
         cout << "Top Cell not defined!\n";
@@ -2251,6 +2255,9 @@ bool Size::gp(Circuit* c){
 	script << "matlab -nodisplay -nosplash -nodesktop -wait -r gp_standard_transSiz_minarea_" << top << endl;
 	//script << "matlab -nosplash -wait -r gp_standard_transSiz_minarea_" << top << endl;
 	script.close();
+	
+	return true;
+	
 	//USING WINDOWS
 	//cout << "passou 1" << endl;
 	//system("chmod 755 script.bat");

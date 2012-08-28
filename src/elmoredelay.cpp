@@ -355,6 +355,89 @@ double elmoredelay::calculateCload( Circuit *c, CellNetlst *topNetlist, CellNetl
 	
 }//end function
 
+//------------------------------------------------------------------------------
+
+double elmoredelay::circuitDelayFernanda( Circuit *c, CellNetlst *topNetlist, const t_net &net) {
+	Inst * inst = findDriver(c, topNetlist, net);
+	map<string,Inst> &instances = topNetlist->getInstances();
+	if ( inst == NULL )
+		return 0;
+
+	//for (map<string,Inst>::iterator instances_it = instances.begin(); instances_it != instances.end(); instances_it++){
+		if (inst->subCircuit  == "inv_1") {
+			inst->delayFernanda = 12;
+		}
+//		switch (c->getCellNetlst( instances_it->second.subCircuit )) {
+//            case inv_1: //in01
+//                c->getCellNetlst( instances_it->second.delayFernanda) = 12; break;
+//            case 1: //na02
+//                footprintLEPairs.push_back(make_pair(orgCells.oCells[j].footprint,1.3333)); break;
+//            case 2: //na03
+//                footprintLEPairs.push_back(make_pair(orgCells.oCells[j].footprint,1.6666)); break;
+//            case 3: //na04
+//                footprintLEPairs.push_back(make_pair(orgCells.oCells[j].footprint,2)); break;
+//            case 4: //no02
+//                footprintLEPairs.push_back(make_pair(orgCells.oCells[j].footprint,1.6666)); break;
+//            case 5: //no03
+//                footprintLEPairs.push_back(make_pair(orgCells.oCells[j].footprint,2.3333)); break;
+//            case 6: //no04
+//                footprintLEPairs.push_back(make_pair(orgCells.oCells[j].footprint,3)); break;
+//            case 7: //ao12
+//                footprintLEPairs.push_back(make_pair(orgCells.oCells[j].footprint,2)); break;
+//            case 8: //ao22
+//                footprintLEPairs.push_back(make_pair(orgCells.oCells[j].footprint,2)); break;
+//            case 9: //oa12
+//                footprintLEPairs.push_back(make_pair(orgCells.oCells[j].footprint,2)); break;
+//            case 10: //oa22
+//                footprintLEPairs.push_back(make_pair(orgCells.oCells[j].footprint,2)); break;
+//            case 11: //ms00
+//                footprintLEPairs.push_back(make_pair(orgCells.oCells[j].footprint,1)); break;
+//            case 12: //vcc
+//                footprintLEPairs.push_back(make_pair(orgCells.oCells[j].footprint,1)); break;
+//            case 13: //vss
+//                footprintLEPairs.push_back(make_pair(orgCells.oCells[j].footprint,1)); break;
+//            default:
+//                break;
+
+		
+		//instances_it->second.delayFernanda = createRC(c,  c->getCellNetlst( instances_it->second.subCircuit ), instances_it->first, instances_it->second.m, Xn, Xp, CloadInst, instances_it->second);
+		cout << "DELAY "<< inst->subCircuit << " = " << inst->delayFernanda << endl;
+		//c->getCellNetlst( instances_it->second.subCircuit )->calcIOs(c->getGndNet(), c->getVddNet());
+		
+    //}//end for
+	
+	double delayGate = inst->delayFernanda;
+    double delayFinal = 0;
+
+	//cout << "Delay Inst " << inst->subCircuit << " = " << delayGate << endl ;
+
+	CellNetlst *netlist = c->getCellNetlst(inst->subCircuit);
+
+	vector<int> &ports = inst->ports;
+	for (int i=0; i<ports.size(); i++) {
+		//cout << " \t" << netlist->getIOType(i) << "\n";
+
+		if ( netlist->getIOType(i) != IOTYPE_INPUT )
+			continue;
+
+		t_net &netInt = topNetlist->getNet(ports[i]);
+		if ( netInt.name == c->getVddNet() || netInt.name == c->getGndNet() )
+			continue;
+
+		delayFinal = max(delayFinal, circuitDelayFernanda(c, topNetlist, netInt ) );
+
+		//cout << "\tNet " << topNetlist->getNet(ports[i]).name << endl;
+		//cout << "\tDELAY FINAL= " << delayFinal << endl;
+	} // end for
+
+	cout << "Delay Gate " << inst->name << delayGate << " + Delay Final " << delayFinal << endl;
+	cout << "### Inst delay: " << (delayGate + delayFinal) << "\n";
+	if ((delayGate+delayFinal) == 4.21893e-10) {
+		exit(0);
+	}
+	return delayGate + delayFinal;
+
+}//end function
 
 //------------------------------------------------------------------------------
 
@@ -408,7 +491,7 @@ void elmoredelay::addInstances(queue<string> &instances, const t_net &net){
 
 
 bool elmoredelay::elmoreSame(Circuit* c){
-	cout << "\n\nINICIA CÁLCULO DO ELMORE" << endl;
+	cout << "\n\nINICIA CÁLCULO DO ELMORE SAME" << endl;
 	double Xn_350 = 1;
 	double Xp_350 = 1.6;
 	//values for 45nm
@@ -531,7 +614,7 @@ bool elmoredelay::elmoreSame(Circuit* c){
 
 
 bool elmoredelay::elmoreFO4(Circuit* c){
-	cout << "\n\nINICIA CÁLCULO DO ELMORE" << endl;
+	cout << "\n\nINICIA CÁLCULO DO ELMORE FO4" << endl;
 	double Xn_350 = 1;
 	double Xp_350 = 1.6;
 	//values for 45nm
@@ -683,7 +766,9 @@ double elmoredelay::computeElmoreDelay( Circuit *circuit ) {
 		t_net &net = topNetlist->getNet(interfaces_it->first);
 		delay = max( delay, circuitDelay( circuit, topNetlist, net ) );
     } // end for
-
+	
+	cout << "Delay " << delay << endl;
 	return delay;
+	
 } // end method
 

@@ -834,6 +834,7 @@ int DesignMng::readCommand(string cmd){
 			
 			case ELMORE_FO4:{
 					elmoredelay e;
+					//e.computeElmoreDelay(circuit);
 					ret=e.elmoreFO4(circuit);
 				}
 				break;		
