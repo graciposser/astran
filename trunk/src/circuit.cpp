@@ -21,8 +21,8 @@ Circuit::Circuit(){
 	//parameters to PrintGP
 	optimize = "area";
 	sizingtype = "gate";
-	technology ="45nm"; 
-	Cload = 8.609274e-16; //1.3273e-14 (350nm)
+	technology ="350nm"; 
+	Cload = 8.609274e-16; //  1.3273e-14 (350nm)
 	constrArea= 1;
 	constrDelay= 4.29113e-9;
 	constrCin = 4; //15 (350nm)

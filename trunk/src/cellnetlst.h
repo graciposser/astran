@@ -69,6 +69,7 @@ struct Inst{
 	float cinPort;		//Input capacitance of port 
 	bool instanceSized;
 	double elmoreDelay;
+	double delayFernanda;
 	double cellArea;
 	double Cload;
 };

@@ -28,6 +28,7 @@ private:
 	void printRC( const RCTranslator &rc, string &D, const int cont, ofstream &file, double constrArea, string instanceName, int contInstance, string sizingType, double Cload, string technology);
 	void printFinalGP( string &D, ofstream &file, RCTranslator &rc, double constrArea, string instanceName);
 	double circuitDelay( Circuit *circuit, CellNetlst *topNetlist, const t_net &net);
+	double circuitDelayFernanda( Circuit *circuit, CellNetlst *topNetlist, const t_net &net);
 	double createRC( Circuit *circuit, CellNetlst *netlist, string instanceName, double m, double Xn, double Xp, double CloadInst, Inst instan);
 	void printFinalCircuit(ofstream &file, RCTranslator &rc, double constrArea, string instanceName, string sizingType);
 	void printConstraints( Circuit *circuit, CellNetlst *netlist, ofstream &file, string instanceName, int contInstance, string sizingType);
